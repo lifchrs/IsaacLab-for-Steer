@@ -7,13 +7,13 @@
 from isaaclab.envs.mimic_env_cfg import MimicEnvCfg, SubTaskConfig
 from isaaclab.utils import configclass
 
-from isaaclab_tasks.manager_based.manipulation.place.config.agibot.place_upright_mug_rmp_rel_env_cfg import (
-    RmpFlowAgibotPlaceUprightMugEnvCfg,
+from isaaclab_tasks.manager_based.manipulation.place.config.agibot.place_upright_mug_rmp_rel_visuomotor_env_cfg import (
+    RmpFlowAgibotPlaceUprightMugVisuomotorEnvCfg,
 )
 
 
 @configclass
-class RmpFlowAgibotPlaceUprightMugMimicEnvCfg(RmpFlowAgibotPlaceUprightMugEnvCfg, MimicEnvCfg):
+class RmpFlowAgibotPlaceUprightMugMimicEnvCfg(RmpFlowAgibotPlaceUprightMugVisuomotorEnvCfg, MimicEnvCfg):
     """
     Isaac Lab Mimic environment config class for Agibot Place Upright Mug env.
     """
