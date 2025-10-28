@@ -45,9 +45,11 @@ def randomize_joint_by_gaussian_offset(
     joint_pos = asset.data.default_joint_pos[env_ids].clone()
     joint_vel = asset.data.default_joint_vel[env_ids].clone()
     joint_pos += math_utils.sample_gaussian(mean, std, joint_pos.shape, joint_pos.device)
+    # print(joint_pos)
 
     # Clamp joint pos to limits
     joint_pos_limits = asset.data.soft_joint_pos_limits[env_ids]
+    # print(joint_pos_limits)
     joint_pos = joint_pos.clamp_(joint_pos_limits[..., 0], joint_pos_limits[..., 1])
 
     # Don't noise the gripper poses
