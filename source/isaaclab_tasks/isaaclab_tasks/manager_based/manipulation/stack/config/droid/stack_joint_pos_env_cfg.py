@@ -111,24 +111,16 @@ class DroidCubeStackEnvCfg(StackEnvCfg):
 
         self.actions.gripper_action = mdp.BinaryJointPositionActionCfg(
             asset_name="robot", 
-            # joint_names=[ "finger_joint", "right_outer_knuckle_joint", "right_outer_finger_joint", "right_inner_finger_joint", "right_inner_finger_knuckle_joint", "left_outer_finger_joint", "left_inner_finger_knuckle_joint", "left_inner_finger_joint", ], 
-            joint_names=[ "finger_joint", "right_outer_knuckle_joint", "right_inner_finger_joint", "right_inner_finger_knuckle_joint", "left_inner_finger_knuckle_joint", "left_inner_finger_joint", ], 
-            # open_command_expr={ "finger_joint": 0.0, "right_outer_knuckle_joint": 0.0, "right_outer_finger_joint": 0.0, "right_inner_finger_joint": 0.0, "right_inner_finger_knuckle_joint": 0.0, "left_outer_finger_joint": 0.0 , "left_inner_finger_knuckle_joint": 0.0, "left_inner_finger_joint": 0.0, }, 
-            open_command_expr={ "finger_joint": 0.0, "right_outer_knuckle_joint": 0.0, "right_inner_finger_joint": 0.0, "right_inner_finger_knuckle_joint": 0.0, "left_inner_finger_knuckle_joint": 0.0, "left_inner_finger_joint": 0.0, }, 
-            # close_command_expr={ "finger_joint": 0.785398163, "right_outer_knuckle_joint": 0.785398163, "right_outer_finger_joint": 0.0, "right_inner_finger_joint": 0.785398163, "right_inner_finger_knuckle_joint": -0.785398163, "left_outer_finger_joint": 0.0 , "left_inner_finger_knuckle_joint": -0.785398163, "left_inner_finger_joint": -0.785398163, } 
-            close_command_expr={ "finger_joint": 0.785398163, "right_outer_knuckle_joint": 0.785398163, "right_inner_finger_joint": 0.785398163, "right_inner_finger_knuckle_joint": -0.785398163, "left_inner_finger_knuckle_joint": -0.785398163, "left_inner_finger_joint": -0.785398163, } 
+            joint_names=[ "finger_joint", "right_outer_knuckle_joint", "right_outer_finger_joint", "right_inner_finger_joint", "right_inner_finger_knuckle_joint", "left_outer_finger_joint", "left_inner_finger_knuckle_joint", "left_inner_finger_joint", ], 
+            # joint_names=[ "finger_joint", "right_outer_knuckle_joint", "right_inner_finger_joint", "right_inner_finger_knuckle_joint", "left_inner_finger_knuckle_joint", "left_inner_finger_joint", ], 
+            open_command_expr={ "finger_joint": 0.0, "right_outer_knuckle_joint": 0.0, "right_outer_finger_joint": 0.0, "right_inner_finger_joint": 0.0, "right_inner_finger_knuckle_joint": 0.0, "left_outer_finger_joint": 0.0 , "left_inner_finger_knuckle_joint": 0.0, "left_inner_finger_joint": 0.0, }, 
+            # open_command_expr={ "finger_joint": 0.0, "right_outer_knuckle_joint": 0.0, "right_inner_finger_joint": 0.0, "right_inner_finger_knuckle_joint": 0.0, "left_inner_finger_knuckle_joint": 0.0, "left_inner_finger_joint": 0.0, }, 
+            close_command_expr={ "finger_joint": 0.785398163, "right_outer_knuckle_joint": 0.785398163, "right_outer_finger_joint": 0.0, "right_inner_finger_joint": 0.785398163, "right_inner_finger_knuckle_joint": -0.785398163, "left_outer_finger_joint": 0.0 , "left_inner_finger_knuckle_joint": -0.785398163, "left_inner_finger_joint": -0.785398163, } 
+            # close_command_expr={ "finger_joint": 0.785398163, "right_outer_knuckle_joint": 0.785398163, "right_inner_finger_joint": 0.785398163, "right_inner_finger_knuckle_joint": -0.785398163, "left_inner_finger_knuckle_joint": -0.785398163, "left_inner_finger_joint": -0.785398163, } 
         )
 
-        # self.actions.gripper_action = mdp.BinaryJointPositionActionCfg(
-        #     asset_name="robot",
-        #     joint_names=["panda_joint7", "panda_joint6"],
-        #     open_command_expr={"panda_joint7": 0.04, "panda_joint6": 0.04},
-        #     close_command_expr={"panda_joint7": 0.0, "panda_joint6": 0.0},
-        # )
-        
         # utilities for gripper status check
         self.gripper_joint_names = ["right_outer_knuckle_joint", "finger_joint"]
-        # self.gripper_joint_names = ["panda_joint7", "panda_joint6"]
         self.gripper_open_val = 0.04
         self.gripper_threshold = 0.005
 
@@ -187,7 +179,6 @@ class DroidCubeStackEnvCfg(StackEnvCfg):
                     prim_path="{ENV_REGEX_NS}/Robot/base_link",
                     name="end_effector",
                     offset=OffsetCfg(
-                        # pos=[0.0, 0.0, 0.1034],
                         pos=(0.0, 0.0, 0.1034),
                     ),
                 ),

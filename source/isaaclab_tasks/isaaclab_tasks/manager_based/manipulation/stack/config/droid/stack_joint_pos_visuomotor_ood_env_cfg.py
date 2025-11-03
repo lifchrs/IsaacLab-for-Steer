@@ -172,8 +172,8 @@ class DroidCubeStackVisuomotorOODEnvCfg(stack_joint_pos_env_cfg.DroidCubeStackEn
         self.scene.wrist_cam = CameraCfg(
             prim_path="{ENV_REGEX_NS}/Robot/base_link/wrist_cam",
             update_period=0.0,
-            height=720,
-            width=1280,
+            height=360,
+            width=640,
             data_types=["rgb", "distance_to_image_plane"],
             spawn=sim_utils.PinholeCameraCfg(
                 focal_length=12.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.01, 2)
@@ -188,8 +188,8 @@ class DroidCubeStackVisuomotorOODEnvCfg(stack_joint_pos_env_cfg.DroidCubeStackEn
         self.scene.table_cam = CameraCfg(
             prim_path="{ENV_REGEX_NS}/table_cam",
             update_period=0.0,
-            height=720,
-            width=1280,
+            height=360,
+            width=640,
             data_types=["rgb", "distance_to_image_plane"],
             spawn=sim_utils.PinholeCameraCfg(
                 focal_length=15.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 2)
