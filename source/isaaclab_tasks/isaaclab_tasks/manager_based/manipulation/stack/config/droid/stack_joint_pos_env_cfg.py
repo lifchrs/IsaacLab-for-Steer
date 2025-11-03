@@ -3,6 +3,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 from isaaclab.assets import RigidObjectCfg
+
 # from isaaclab.assets import ArticulationCfg
 from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import SceneEntityCfg
@@ -13,16 +14,19 @@ from isaaclab.sim.schemas.schemas_cfg import RigidBodyPropertiesCfg
 from isaaclab.sim.spawners.from_files.from_files_cfg import UsdFileCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
+
 # from isaaclab.actuators import ImplicitActuatorCfg
 
 from isaaclab_tasks.manager_based.manipulation.stack import mdp
 from isaaclab_tasks.manager_based.manipulation.stack.mdp import franka_stack_events
-from isaaclab_tasks.manager_based.manipulation.stack.stack_env_cfg import StackEnvCfg
+from isaaclab_tasks.manager_based.manipulation.stack.stack_env_cfg import (
+    DroidStackEnvCfg,
+)
 
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets.robots.franka import DROID_CFG, FRANKA_ROBOTIQ_CFG # isort: skip
+from isaaclab_assets.robots.franka import DROID_CFG  # isort: skip
 from isaaclab.markers.config import FRAME_MARKER_CFG  # isort: skip
 
 
@@ -34,7 +38,23 @@ class EventCfg:
         func=franka_stack_events.set_default_joint_pose,
         mode="reset",
         params={
-            "default_pose": [0.0444, -0.1894, -0.1107, -2.5148, 0.0044, 2.3775, 0.6952, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            "default_pose": [
+                0.0444,
+                -0.1894,
+                -0.1107,
+                -2.5148,
+                0.0044,
+                2.3775,
+                0.6952,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ],
         },
     )
 
@@ -52,41 +72,33 @@ class EventCfg:
         func=franka_stack_events.randomize_object_pose,
         mode="reset",
         params={
-            "pose_range": {"x": (0.4, 0.6), "y": (-0.10, 0.10), "z": (0.0203, 0.0203), "yaw": (-1.0, 1, 0)},
+            "pose_range": {
+                "x": (0.4, 0.6),
+                "y": (-0.10, 0.10),
+                "z": (0.0203, 0.0203),
+                "yaw": (-1.0, 1, 0),
+            },
             "min_separation": 0.1,
-            "asset_cfgs": [SceneEntityCfg("cube_1"), SceneEntityCfg("cube_2"), SceneEntityCfg("cube_3")],
+            "asset_cfgs": [
+                SceneEntityCfg("cube_1"),
+                SceneEntityCfg("cube_2"),
+                SceneEntityCfg("cube_3"),
+            ],
         },
     )
 
 
 @configclass
-class DroidCubeStackEnvCfg(StackEnvCfg):
+class DroidCubeStackEnvCfg(DroidStackEnvCfg):
 
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
 
-        # Override decimation for different control frequency
-        self.decimation = 7  # 100Hz / 7 = 14.28Hz control frequency
-
         # Set events
         self.events = EventCfg()
 
-        # import droid usd as robot
-        # self.scene.robot = ArticulationCfg(
-        #     prim_path="{ENV_REGEX_NS}/Robot",
-        #     spawn=UsdFileCfg(
-        #         usd_path=f"/home/chuanruo/IsaacLab/asset/droid/droid.usd",
-        #         articulation_props=sim_utils.ArticulationRootPropertiesCfg(enabled_self_collisions=True, fix_root_link=True),
-        #     ),
-        #     actuators={
-        #         # "Active Joints": ImplicitActuatorCfg(joint_names_expr=["panda_joint.*", "right_outer_knuckle_joint", "left_outer_knuckle_joint"], stiffness=40000.0, damping=800.0),
-        #         # "Passive Joints": ImplicitActuatorCfg(joint_names_expr=["^(?!.*panda_joint|.*right_outer_knuckle_joint|.*left_outer_knuckle_joint).*"], stiffness=1.0, damping=1.0),
-        #         "All Joints": ImplicitActuatorCfg(joint_names_expr=[".*"], stiffness=40000.0, damping=800.0),
-        #     },
-        # )
-        # self.scene.robot = DROID_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
-        self.scene.robot = FRANKA_ROBOTIQ_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        self.scene.robot = DROID_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
         self.scene.robot.spawn.semantic_tags = [("class", "robot")]
 
         # Add semantics to table
@@ -97,31 +109,49 @@ class DroidCubeStackEnvCfg(StackEnvCfg):
 
         # Set actions for the specific robot type (franka)
         self.actions.arm_action = mdp.JointPositionActionCfg(
-            asset_name="robot", joint_names=["panda_joint.*"], scale=1.0, use_default_offset=False
+            asset_name="robot",
+            joint_names=["panda_joint.*"],
+            scale=1.0,
+            use_default_offset=False,
         )
-        # self.actions.arm_action = mdp.JointVelocityActionCfg(
-        #     asset_name="robot", joint_names=["panda_joint.*"], scale=1.0, use_default_offset=False
-        # )
-        # self.actions.gripper_action = mdp.BinaryJointPositionActionCfg(
-        #     asset_name="robot",
-        #     joint_names=["right_outer_knuckle_joint", "left_outer_knuckle_joint"],
-        #     open_command_expr={"right_outer_knuckle_joint": 0.04, "left_outer_knuckle_joint": 0.04},
-        #     close_command_expr={"right_outer_knuckle_joint": 0.0, "left_outer_knuckle_joint": 0.0},
-        # )
 
         self.actions.gripper_action = mdp.BinaryJointPositionActionCfg(
-            asset_name="robot", 
-            joint_names=[ "finger_joint", "right_outer_knuckle_joint", "right_outer_finger_joint", "right_inner_finger_joint", "right_inner_finger_knuckle_joint", "left_outer_finger_joint", "left_inner_finger_knuckle_joint", "left_inner_finger_joint", ], 
-            # joint_names=[ "finger_joint", "right_outer_knuckle_joint", "right_inner_finger_joint", "right_inner_finger_knuckle_joint", "left_inner_finger_knuckle_joint", "left_inner_finger_joint", ], 
-            open_command_expr={ "finger_joint": 0.0, "right_outer_knuckle_joint": 0.0, "right_outer_finger_joint": 0.0, "right_inner_finger_joint": 0.0, "right_inner_finger_knuckle_joint": 0.0, "left_outer_finger_joint": 0.0 , "left_inner_finger_knuckle_joint": 0.0, "left_inner_finger_joint": 0.0, }, 
-            # open_command_expr={ "finger_joint": 0.0, "right_outer_knuckle_joint": 0.0, "right_inner_finger_joint": 0.0, "right_inner_finger_knuckle_joint": 0.0, "left_inner_finger_knuckle_joint": 0.0, "left_inner_finger_joint": 0.0, }, 
-            close_command_expr={ "finger_joint": 0.785398163, "right_outer_knuckle_joint": 0.785398163, "right_outer_finger_joint": 0.0, "right_inner_finger_joint": 0.785398163, "right_inner_finger_knuckle_joint": -0.785398163, "left_outer_finger_joint": 0.0 , "left_inner_finger_knuckle_joint": -0.785398163, "left_inner_finger_joint": -0.785398163, } 
-            # close_command_expr={ "finger_joint": 0.785398163, "right_outer_knuckle_joint": 0.785398163, "right_inner_finger_joint": 0.785398163, "right_inner_finger_knuckle_joint": -0.785398163, "left_inner_finger_knuckle_joint": -0.785398163, "left_inner_finger_joint": -0.785398163, } 
+            asset_name="robot",
+            joint_names=[
+                "finger_joint",
+                "right_outer_knuckle_joint",
+                "right_outer_finger_joint",
+                "right_inner_finger_joint",
+                "right_inner_finger_knuckle_joint",
+                "left_outer_finger_joint",
+                "left_inner_finger_knuckle_joint",
+                "left_inner_finger_joint",
+            ],
+            open_command_expr={
+                "finger_joint": 0.0,
+                "right_outer_knuckle_joint": 0.0,
+                "right_outer_finger_joint": 0.0,
+                "right_inner_finger_joint": 0.0,
+                "right_inner_finger_knuckle_joint": 0.0,
+                "left_outer_finger_joint": 0.0,
+                "left_inner_finger_knuckle_joint": 0.0,
+                "left_inner_finger_joint": 0.0,
+            },
+            close_command_expr={
+                "finger_joint": 0.785398163,
+                "right_outer_knuckle_joint": 0.785398163,
+                "right_outer_finger_joint": 0.0,
+                "right_inner_finger_joint": 0.785398163,
+                "right_inner_finger_knuckle_joint": -0.785398163,
+                "left_outer_finger_joint": 0.0,
+                "left_inner_finger_knuckle_joint": -0.785398163,
+                "left_inner_finger_joint": -0.785398163,
+            },
         )
 
         # utilities for gripper status check
         self.gripper_joint_names = ["right_outer_knuckle_joint", "finger_joint"]
-        self.gripper_open_val = 0.04
+        self.gripper_open_val = 0.0
         self.gripper_threshold = 0.005
 
         # Rigid body properties of each cube
@@ -137,7 +167,9 @@ class DroidCubeStackEnvCfg(StackEnvCfg):
         # Set each stacking cube deterministically
         self.scene.cube_1 = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/Cube_1",
-            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.4, 0.0, 0.0203], rot=[1, 0, 0, 0]),
+            init_state=RigidObjectCfg.InitialStateCfg(
+                pos=[0.4, 0.0, 0.0203], rot=[1, 0, 0, 0]
+            ),
             spawn=UsdFileCfg(
                 usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/blue_block.usd",
                 scale=(1.0, 1.0, 1.0),
@@ -147,7 +179,9 @@ class DroidCubeStackEnvCfg(StackEnvCfg):
         )
         self.scene.cube_2 = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/Cube_2",
-            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.55, 0.05, 0.0203], rot=[1, 0, 0, 0]),
+            init_state=RigidObjectCfg.InitialStateCfg(
+                pos=[0.55, 0.05, 0.0203], rot=[1, 0, 0, 0]
+            ),
             spawn=UsdFileCfg(
                 usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/red_block.usd",
                 scale=(1.0, 1.0, 1.0),
@@ -157,7 +191,9 @@ class DroidCubeStackEnvCfg(StackEnvCfg):
         )
         self.scene.cube_3 = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/Cube_3",
-            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.60, -0.1, 0.0203], rot=[1, 0, 0, 0]),
+            init_state=RigidObjectCfg.InitialStateCfg(
+                pos=[0.60, -0.1, 0.0203], rot=[1, 0, 0, 0]
+            ),
             spawn=UsdFileCfg(
                 usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/green_block.usd",
                 scale=(1.0, 1.0, 1.0),
@@ -179,21 +215,22 @@ class DroidCubeStackEnvCfg(StackEnvCfg):
                     prim_path="{ENV_REGEX_NS}/Robot/base_link",
                     name="end_effector",
                     offset=OffsetCfg(
-                        pos=(0.0, 0.0, 0.1034),
+                        pos=(0.1534, 0.0, 0.0),
+                        rot=(0.0, 0.7071068, 0.0, 0.7071068),
                     ),
                 ),
                 FrameTransformerCfg.FrameCfg(
                     prim_path="{ENV_REGEX_NS}/Robot/right_inner_finger",
                     name="tool_rightfinger",
                     offset=OffsetCfg(
-                        pos=(0.0, 0.0, 0.046),
+                        pos=(0.046, 0.0, 0.0),
                     ),
                 ),
                 FrameTransformerCfg.FrameCfg(
                     prim_path="{ENV_REGEX_NS}/Robot/left_inner_finger",
                     name="tool_leftfinger",
                     offset=OffsetCfg(
-                        pos=(0.0, 0.0, 0.046),
+                        pos=(0.046, 0.0, 0.0),
                     ),
                 ),
             ],

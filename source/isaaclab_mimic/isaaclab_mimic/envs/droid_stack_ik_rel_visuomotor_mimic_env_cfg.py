@@ -6,22 +6,17 @@
 from isaaclab.envs.mimic_env_cfg import MimicEnvCfg, SubTaskConfig
 from isaaclab.utils import configclass
 
-from isaaclab_tasks.manager_based.manipulation.stack.config.franka.stack_ik_rel_visuomotor_custom_gap_id_env_cfg import (
-    FrankaCubeStackVisuomotorCustomGapIDEnvCfg,
+from isaaclab_tasks.manager_based.manipulation.stack.config.droid.stack_ik_rel_visuomotor_env_cfg import (
+    DroidIkRelCubeStackVisuomotorEnvCfg,
 )
-
-from isaaclab.sim.schemas.schemas_cfg import RigidBodyPropertiesCfg
-from isaaclab.assets import RigidObjectCfg
-from isaaclab.sim.spawners.from_files.from_files_cfg import UsdFileCfg
-from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 
 
 @configclass
-class FrankaCubeStackIKRelVisuomotorCustomGapIDMimicEnvCfg(
-    FrankaCubeStackVisuomotorCustomGapIDEnvCfg, MimicEnvCfg
+class DroidCubeStackIKRelVisuomotorMimicEnvCfg(
+    DroidIkRelCubeStackVisuomotorEnvCfg, MimicEnvCfg
 ):
     """
-    Isaac Lab Mimic environment config class for Franka Cube Stack IK Rel Visuomotor env.
+    Isaac Lab Mimic environment config class for Droid Cube Stack IK Rel Visuomotor env.
     """
 
     def __post_init__(self):
@@ -29,11 +24,9 @@ class FrankaCubeStackIKRelVisuomotorCustomGapIDMimicEnvCfg(
         super().__post_init__()
 
         # Override the existing values
-        self.datagen_config.name = (
-            "isaac_lab_franka_stack_ik_rel_visuomotor_custom_gap_D0"
-        )
+        self.datagen_config.name = "isaac_lab_droid_stack_ik_rel_visuomotor_D0"
         self.datagen_config.generation_guarantee = True
-        self.datagen_config.generation_keep_failed = True
+        self.datagen_config.generation_keep_failed = False
         self.datagen_config.generation_num_trials = 10
         self.datagen_config.generation_select_src_per_subtask = True
         self.datagen_config.generation_transform_first_robot_pose = False
@@ -42,7 +35,7 @@ class FrankaCubeStackIKRelVisuomotorCustomGapIDMimicEnvCfg(
         self.datagen_config.max_num_failures = 25
         self.datagen_config.seed = 1
 
-        # override the default cube physics configurations
+        ACTION_NOISE = 0.01
 
         # The following are the subtask configurations for the stack task.
         subtask_configs = []
@@ -61,7 +54,7 @@ class FrankaCubeStackIKRelVisuomotorCustomGapIDMimicEnvCfg(
                 # Optional parameters for the selection strategy function
                 selection_strategy_kwargs={"nn_k": 3},
                 # Amount of action noise to apply during this subtask
-                action_noise=0.03,
+                action_noise=ACTION_NOISE,
                 # Number of interpolation steps to bridge to this subtask segment
                 num_interpolation_steps=5,
                 # Additional fixed steps for the robot to reach the necessary pose
@@ -83,7 +76,7 @@ class FrankaCubeStackIKRelVisuomotorCustomGapIDMimicEnvCfg(
                 # Optional parameters for the selection strategy function
                 selection_strategy_kwargs={"nn_k": 3},
                 # Amount of action noise to apply during this subtask
-                action_noise=0.03,
+                action_noise=ACTION_NOISE,
                 # Number of interpolation steps to bridge to this subtask segment
                 num_interpolation_steps=5,
                 # Additional fixed steps for the robot to reach the necessary pose
@@ -105,7 +98,7 @@ class FrankaCubeStackIKRelVisuomotorCustomGapIDMimicEnvCfg(
                 # Optional parameters for the selection strategy function
                 selection_strategy_kwargs={"nn_k": 3},
                 # Amount of action noise to apply during this subtask
-                action_noise=0.03,
+                action_noise=ACTION_NOISE,
                 # Number of interpolation steps to bridge to this subtask segment
                 num_interpolation_steps=5,
                 # Additional fixed steps for the robot to reach the necessary pose
@@ -127,7 +120,7 @@ class FrankaCubeStackIKRelVisuomotorCustomGapIDMimicEnvCfg(
                 # Optional parameters for the selection strategy function
                 selection_strategy_kwargs={"nn_k": 3},
                 # Amount of action noise to apply during this subtask
-                action_noise=0.03,
+                action_noise=ACTION_NOISE,
                 # Number of interpolation steps to bridge to this subtask segment
                 num_interpolation_steps=5,
                 # Additional fixed steps for the robot to reach the necessary pose

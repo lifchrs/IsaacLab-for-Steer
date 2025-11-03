@@ -8,12 +8,12 @@ from isaaclab.controllers.differential_ik_cfg import DifferentialIKControllerCfg
 from isaaclab.envs.mdp.actions.actions_cfg import DifferentialInverseKinematicsActionCfg
 from isaaclab.utils import configclass
 
-from . import stack_joint_pos_visuomotor_env_cfg
+from . import stack_joint_pos_visuomotor_sim_id_env_cfg
 
 
 @configclass
-class DroidIkRelCubeStackVisuomotorEnvCfg(
-    stack_joint_pos_visuomotor_env_cfg.DroidCubeStackVisuomotorEnvCfg
+class DroidIkRelCubeStackVisuomotorSimIDEnvCfg(
+    stack_joint_pos_visuomotor_sim_id_env_cfg.DroidCubeStackVisuomotorSimIDEnvCfg
 ):
     def __post_init__(self):
         # post init of parent

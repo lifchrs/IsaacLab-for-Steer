@@ -18,8 +18,8 @@ from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, NVIDIA_NUCLEUS_DIR
 from isaaclab_tasks.manager_based.manipulation.stack import mdp
 from isaaclab_tasks.manager_based.manipulation.stack.mdp import franka_stack_events
 
-from . import stack_joint_pos_custom_env_cfg
 from . import stack_joint_pos_env_cfg
+from . import stack_joint_pos_sim_env_cfg
 
 ##
 # Pre-defined configs
@@ -28,8 +28,10 @@ from . import stack_joint_pos_env_cfg
 
 
 @configclass
-class EventCfg(stack_joint_pos_custom_env_cfg.EventCfg):
+class EventCfg(stack_joint_pos_sim_env_cfg.EventCfg):  # sim poses
     """Configuration for events."""
+
+    # real-world visual
 
     randomize_light = EventTerm(
         func=franka_stack_events.randomize_scene_lighting_domelight,
@@ -100,10 +102,20 @@ class ObservationsCfg:
         eef_quat = ObsTerm(func=mdp.ee_frame_quat)
         gripper_pos = ObsTerm(func=mdp.gripper_pos)
         table_cam = ObsTerm(
-            func=mdp.image, params={"sensor_cfg": SceneEntityCfg("table_cam"), "data_type": "rgb", "normalize": False}
+            func=mdp.image,
+            params={
+                "sensor_cfg": SceneEntityCfg("table_cam"),
+                "data_type": "rgb",
+                "normalize": False,
+            },
         )
         wrist_cam = ObsTerm(
-            func=mdp.image, params={"sensor_cfg": SceneEntityCfg("wrist_cam"), "data_type": "rgb", "normalize": False}
+            func=mdp.image,
+            params={
+                "sensor_cfg": SceneEntityCfg("wrist_cam"),
+                "data_type": "rgb",
+                "normalize": False,
+            },
         )
 
         def __post_init__(self):
@@ -150,6 +162,7 @@ class ObservationsCfg:
 
 @configclass
 class DroidCubeStackVisuomotorOODEnvCfg(stack_joint_pos_env_cfg.DroidCubeStackEnvCfg):
+    # real-world dynamics
     observations: ObservationsCfg = ObservationsCfg()
 
     # Evaluation settings
@@ -163,24 +176,25 @@ class DroidCubeStackVisuomotorOODEnvCfg(stack_joint_pos_env_cfg.DroidCubeStackEn
         # Set events
         self.events = EventCfg()
 
-        # Keep the same robot configuration
-        # Print robot link names
-        # print("Robot link names:", self.scene.robot.body_names)
-
         # Set cameras
         # Set wrist camera
         self.scene.wrist_cam = CameraCfg(
             prim_path="{ENV_REGEX_NS}/Robot/base_link/wrist_cam",
             update_period=0.0,
-            height=360,
-            width=640,
+            height=144,
+            width=256,
             data_types=["rgb", "distance_to_image_plane"],
             spawn=sim_utils.PinholeCameraCfg(
-                focal_length=12.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.01, 2)
+                focal_length=12.0,
+                focus_distance=400.0,
+                horizontal_aperture=20.955,
+                clipping_range=(0.01, 2),
             ),
             offset=CameraCfg.OffsetCfg(
                 # pos=(-0.03, -0.03, -0.09), rot=(-0.56472, -0.42555, -0.42555, -0.56472), convention="ros"
-                pos=(0.005, -0.03, -0.07), rot=(-0.56472, -0.42555, -0.42555, -0.56472), convention="ros"
+                pos=(0.005, -0.03, -0.07),
+                rot=(-0.56472, -0.42555, -0.42555, -0.56472),
+                convention="ros",
             ),
         )
 
@@ -188,14 +202,19 @@ class DroidCubeStackVisuomotorOODEnvCfg(stack_joint_pos_env_cfg.DroidCubeStackEn
         self.scene.table_cam = CameraCfg(
             prim_path="{ENV_REGEX_NS}/table_cam",
             update_period=0.0,
-            height=360,
-            width=640,
+            height=144,
+            width=256,
             data_types=["rgb", "distance_to_image_plane"],
             spawn=sim_utils.PinholeCameraCfg(
-                focal_length=15.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 2)
+                focal_length=15.0,
+                focus_distance=400.0,
+                horizontal_aperture=20.955,
+                clipping_range=(0.1, 2),
             ),
             offset=CameraCfg.OffsetCfg(
-                pos=(1.0, 0.0, 0.4), rot=(0.35355, -0.61237, -0.61237, 0.35355), convention="ros"
+                pos=(1.0, 0.0, 0.4),
+                rot=(0.35355, -0.61237, -0.61237, 0.35355),
+                convention="ros",
             ),
         )
 

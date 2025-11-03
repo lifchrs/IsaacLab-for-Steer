@@ -7,22 +7,16 @@ import os
 
 from . import (
     agents,
-    # bin_stack_ik_rel_env_cfg,
-    # stack_ik_abs_env_cfg,
-    # stack_ik_rel_blueprint_env_cfg,
-    # stack_ik_rel_env_cfg,
-    # stack_ik_rel_env_cfg_skillgen,
-    # stack_ik_rel_instance_randomize_env_cfg,
-    # stack_ik_rel_visuomotor_cosmos_env_cfg,
-    # stack_ik_rel_visuomotor_env_cfg,
-    # stack_ik_rel_visuomotor_ood_env_cfg,
-    # stack_ik_rel_visuomotor_custom_env_cfg,
-    # stack_ik_rel_visuomotor_custom_id_env_cfg,
-    # stack_ik_rel_visuomotor_custom_gap_env_cfg,
-    # stack_ik_rel_visuomotor_custom_gap_id_env_cfg,
     stack_joint_pos_env_cfg,
-    stack_joint_pos_instance_randomize_env_cfg,
+    stack_joint_pos_sim_env_cfg,
+    stack_joint_pos_visuomotor_env_cfg,
     stack_joint_pos_visuomotor_ood_env_cfg,
+    stack_joint_pos_visuomotor_sim_env_cfg,
+    stack_joint_pos_visuomotor_sim_id_env_cfg,
+    stack_ik_rel_visuomotor_env_cfg,
+    stack_ik_rel_visuomotor_ood_env_cfg,
+    stack_ik_rel_visuomotor_sim_env_cfg,
+    stack_ik_rel_visuomotor_sim_id_env_cfg,
 )
 
 ##
@@ -43,10 +37,10 @@ gym.register(
 )
 
 gym.register(
-    id="Isaac-Stack-Cube-Instance-Randomize-Droid-v0",
+    id="Isaac-Stack-Cube-Droid-Visuomotor-v0",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     kwargs={
-        "env_cfg_entry_point": stack_joint_pos_instance_randomize_env_cfg.DroidCubeStackInstanceRandomizeEnvCfg,
+        "env_cfg_entry_point": stack_joint_pos_sim_env_cfg.DroidCubeStackSimEnvCfg,
     },
     disable_env_checker=True,
 )
@@ -54,6 +48,15 @@ gym.register(
 ##
 # Joint Position Control with Visual Observations
 ##
+
+gym.register(
+    id="Isaac-Stack-Cube-Droid-Visuomotor-ID-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    kwargs={
+        "env_cfg_entry_point": stack_joint_pos_visuomotor_env_cfg.DroidCubeStackVisuomotorEnvCfg,
+    },
+    disable_env_checker=True,
+)
 
 gym.register(
     id="Isaac-Stack-Cube-Droid-Visuomotor-OOD-v0",
@@ -64,137 +67,60 @@ gym.register(
     disable_env_checker=True,
 )
 
-##
+gym.register(
+    id="Isaac-Stack-Cube-Droid-Visuomotor-Sim-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    kwargs={
+        "env_cfg_entry_point": stack_joint_pos_visuomotor_sim_env_cfg.DroidCubeStackVisuomotorSimEnvCfg,
+    },
+    disable_env_checker=True,
+)
+
+gym.register(
+    id="Isaac-Stack-Cube-Droid-Visuomotor-Sim-ID-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    kwargs={
+        "env_cfg_entry_point": stack_joint_pos_visuomotor_sim_id_env_cfg.DroidCubeStackVisuomotorSimIDEnvCfg,
+    },
+    disable_env_checker=True,
+)
+
+# #
 # Inverse Kinematics - Relative Pose Control
-##
+# #
 
-# gym.register(
-#     id="Isaac-Stack-Cube-Franka-IK-Rel-v0",
-#     entry_point="isaaclab.envs:ManagerBasedRLEnv",
-#     kwargs={
-#         "env_cfg_entry_point": stack_ik_rel_env_cfg.FrankaCubeStackEnvCfg,
-#         "robomimic_bc_cfg_entry_point": os.path.join(agents.__path__[0], "robomimic/bc_rnn_low_dim.json"),
-#     },
-#     disable_env_checker=True,
-# )
+gym.register(
+    id="Isaac-Stack-Cube-Droid-IK-Rel-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    kwargs={
+        "env_cfg_entry_point": stack_ik_rel_visuomotor_env_cfg.DroidIkRelCubeStackVisuomotorEnvCfg,
+    },
+    disable_env_checker=True,
+)
 
-# gym.register(
-#     id="Isaac-Stack-Cube-Franka-IK-Rel-Visuomotor-v0",
-#     entry_point="isaaclab.envs:ManagerBasedRLEnv",
-#     kwargs={
-#         "env_cfg_entry_point": stack_ik_rel_visuomotor_env_cfg.FrankaCubeStackVisuomotorEnvCfg,
-#         "robomimic_bc_cfg_entry_point": os.path.join(agents.__path__[0], "robomimic/bc_rnn_image_84.json"),
-#     },
-#     disable_env_checker=True,
-# )
+gym.register(
+    id="Isaac-Stack-Cube-Droid-IK-Rel-OOD-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    kwargs={
+        "env_cfg_entry_point": stack_ik_rel_visuomotor_ood_env_cfg.DroidIkRelCubeStackVisuomotorOODEnvCfg,
+    },
+    disable_env_checker=True,
+)
 
-# gym.register(
-#     id="Isaac-Stack-Cube-Franka-IK-Rel-Visuomotor-OOD-v0",
-#     entry_point="isaaclab.envs:ManagerBasedRLEnv",
-#     kwargs={
-#         "env_cfg_entry_point": stack_ik_rel_visuomotor_ood_env_cfg.FrankaCubeStackVisuomotorOODEnvCfg,
-#         "robomimic_bc_cfg_entry_point": os.path.join(agents.__path__[0], "robomimic/bc_rnn_image_84.json"),
-#     },
-#     disable_env_checker=True,
-# )
+gym.register(
+    id="Isaac-Stack-Cube-Droid-IK-Rel-Sim-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    kwargs={
+        "env_cfg_entry_point": stack_ik_rel_visuomotor_sim_env_cfg.DroidIkRelCubeStackVisuomotorSimEnvCfg,
+    },
+    disable_env_checker=True,
+)
 
-# gym.register(
-#     id="Isaac-Stack-Cube-Franka-IK-Rel-Visuomotor-Custom-v0",
-#     entry_point="isaaclab.envs:ManagerBasedRLEnv",
-#     kwargs={
-#         "env_cfg_entry_point": stack_ik_rel_visuomotor_custom_env_cfg.FrankaCubeStackVisuomotorCustomEnvCfg,
-#         "robomimic_bc_cfg_entry_point": os.path.join(agents.__path__[0], "robomimic/bc_rnn_image_84.json"),
-#     },
-#     disable_env_checker=True,
-# )
-
-# gym.register(
-#     id="Isaac-Stack-Cube-Franka-IK-Rel-Visuomotor-Custom-ID-v0",
-#     entry_point="isaaclab.envs:ManagerBasedRLEnv",
-#     kwargs={
-#         "env_cfg_entry_point": stack_ik_rel_visuomotor_custom_id_env_cfg.FrankaCubeStackVisuomotorCustomIDEnvCfg,
-#         "robomimic_bc_cfg_entry_point": os.path.join(agents.__path__[0], "robomimic/bc_rnn_image_84.json"),
-#     },
-#     disable_env_checker=True,
-# )
-
-# gym.register(
-#     id="Isaac-Stack-Cube-Franka-IK-Rel-Visuomotor-Custom-Gap-v0",
-#     entry_point="isaaclab.envs:ManagerBasedRLEnv",
-#     kwargs={
-#         "env_cfg_entry_point": stack_ik_rel_visuomotor_custom_gap_env_cfg.FrankaCubeStackVisuomotorCustomGapEnvCfg,
-#         "robomimic_bc_cfg_entry_point": os.path.join(agents.__path__[0], "robomimic/bc_rnn_image_84.json"),
-#     },
-#     disable_env_checker=True,
-# )
-
-# gym.register(
-#     id="Isaac-Stack-Cube-Franka-IK-Rel-Visuomotor-Custom-Gap-ID-v0",
-#     entry_point="isaaclab.envs:ManagerBasedRLEnv",
-#     kwargs={
-#         "env_cfg_entry_point": stack_ik_rel_visuomotor_custom_gap_id_env_cfg.FrankaCubeStackVisuomotorCustomGapIDEnvCfg,
-#         "robomimic_bc_cfg_entry_point": os.path.join(agents.__path__[0], "robomimic/bc_rnn_image_84.json"),
-#     },
-#     disable_env_checker=True,
-# )
-
-
-
-
-# gym.register(
-#     id="Isaac-Stack-Cube-Franka-IK-Rel-Visuomotor-Cosmos-v0",
-#     entry_point="isaaclab.envs:ManagerBasedRLEnv",
-#     kwargs={
-#         "env_cfg_entry_point": stack_ik_rel_visuomotor_cosmos_env_cfg.FrankaCubeStackVisuomotorCosmosEnvCfg,
-#         "robomimic_bc_cfg_entry_point": os.path.join(agents.__path__[0], "robomimic/bc_rnn_image_cosmos.json"),
-#     },
-#     disable_env_checker=True,
-# )
-
-# gym.register(
-#     id="Isaac-Stack-Cube-Franka-IK-Abs-v0",
-#     entry_point="isaaclab.envs:ManagerBasedRLEnv",
-#     kwargs={
-#         "env_cfg_entry_point": stack_ik_abs_env_cfg.FrankaCubeStackEnvCfg,
-#         "robomimic_bc_cfg_entry_point": os.path.join(agents.__path__[0], "robomimic/bc_rnn_low_dim.json"),
-#     },
-#     disable_env_checker=True,
-# )
-
-# gym.register(
-#     id="Isaac-Stack-Cube-Instance-Randomize-Franka-IK-Rel-v0",
-#     entry_point="isaaclab.envs:ManagerBasedRLEnv",
-#     kwargs={
-#         "env_cfg_entry_point": stack_ik_rel_instance_randomize_env_cfg.FrankaCubeStackInstanceRandomizeEnvCfg,
-#     },
-#     disable_env_checker=True,
-# )
-
-# gym.register(
-#     id="Isaac-Stack-Cube-Franka-IK-Rel-Blueprint-v0",
-#     entry_point="isaaclab.envs:ManagerBasedRLEnv",
-#     kwargs={
-#         "env_cfg_entry_point": stack_ik_rel_blueprint_env_cfg.FrankaCubeStackBlueprintEnvCfg,
-#     },
-#     disable_env_checker=True,
-# )
-
-# gym.register(
-#     id="Isaac-Stack-Cube-Franka-IK-Rel-Skillgen-v0",
-#     entry_point="isaaclab.envs:ManagerBasedRLEnv",
-#     kwargs={
-#         "env_cfg_entry_point": stack_ik_rel_env_cfg_skillgen.FrankaCubeStackSkillgenEnvCfg,
-#         "robomimic_bc_cfg_entry_point": os.path.join(agents.__path__[0], "robomimic/bc_rnn_low_dim.json"),
-#     },
-#     disable_env_checker=True,
-# )
-
-# gym.register(
-#     id="Isaac-Stack-Cube-Bin-Franka-IK-Rel-Mimic-v0",
-#     entry_point="isaaclab.envs:ManagerBasedRLEnv",
-#     kwargs={
-#         "env_cfg_entry_point": bin_stack_ik_rel_env_cfg.FrankaBinStackEnvCfg,
-#         "robomimic_bc_cfg_entry_point": os.path.join(agents.__path__[0], "robomimic/bc_rnn_low_dim.json"),
-#     },
-#     disable_env_checker=True,
-# )
+gym.register(
+    id="Isaac-Stack-Cube-Droid-IK-Rel-Sim-ID-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    kwargs={
+        "env_cfg_entry_point": stack_ik_rel_visuomotor_sim_id_env_cfg.DroidIkRelCubeStackVisuomotorSimIDEnvCfg,
+    },
+    disable_env_checker=True,
+)

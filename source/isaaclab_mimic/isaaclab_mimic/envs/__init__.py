@@ -10,17 +10,48 @@ import gymnasium as gym
 from .franka_bin_stack_ik_rel_mimic_env_cfg import FrankaBinStackIKRelMimicEnvCfg
 from .franka_stack_ik_abs_mimic_env import FrankaCubeStackIKAbsMimicEnv
 from .franka_stack_ik_abs_mimic_env_cfg import FrankaCubeStackIKAbsMimicEnvCfg
-from .franka_stack_ik_rel_blueprint_mimic_env_cfg import FrankaCubeStackIKRelBlueprintMimicEnvCfg
+from .franka_stack_ik_rel_blueprint_mimic_env_cfg import (
+    FrankaCubeStackIKRelBlueprintMimicEnvCfg,
+)
 from .franka_stack_ik_rel_mimic_env import FrankaCubeStackIKRelMimicEnv
 from .franka_stack_ik_rel_mimic_env_cfg import FrankaCubeStackIKRelMimicEnvCfg
 from .franka_stack_ik_rel_skillgen_env_cfg import FrankaCubeStackIKRelSkillgenEnvCfg
-from .franka_stack_ik_rel_visuomotor_cosmos_mimic_env_cfg import FrankaCubeStackIKRelVisuomotorCosmosMimicEnvCfg
-from .franka_stack_ik_rel_visuomotor_mimic_env_cfg import FrankaCubeStackIKRelVisuomotorMimicEnvCfg
-from .franka_stack_ik_rel_visuomotor_custom_mimic_env_cfg import FrankaCubeStackIKRelVisuomotorCustomMimicEnvCfg
-from .franka_stack_ik_rel_visuomotor_ood_mimic_env_cfg import FrankaCubeStackIKRelVisuomotorOODMimicEnvCfg
-from .franka_stack_ik_rel_visuomotor_custom_id_mimic_env_cfg import FrankaCubeStackIKRelVisuomotorCustomIDMimicEnvCfg
-from .franka_stack_ik_rel_visuomotor_custom_gap_mimic_env_cfg import FrankaCubeStackIKRelVisuomotorCustomGapMimicEnvCfg
-from .franka_stack_ik_rel_visuomotor_custom_gap_id_mimic_env_cfg import FrankaCubeStackIKRelVisuomotorCustomGapIDMimicEnvCfg
+from .franka_stack_ik_rel_visuomotor_cosmos_mimic_env_cfg import (
+    FrankaCubeStackIKRelVisuomotorCosmosMimicEnvCfg,
+)
+from .franka_stack_ik_rel_visuomotor_mimic_env_cfg import (
+    FrankaCubeStackIKRelVisuomotorMimicEnvCfg,
+)
+from .franka_stack_ik_rel_visuomotor_custom_mimic_env_cfg import (
+    FrankaCubeStackIKRelVisuomotorCustomMimicEnvCfg,
+)
+from .franka_stack_ik_rel_visuomotor_ood_mimic_env_cfg import (
+    FrankaCubeStackIKRelVisuomotorOODMimicEnvCfg,
+)
+from .franka_stack_ik_rel_visuomotor_custom_id_mimic_env_cfg import (
+    FrankaCubeStackIKRelVisuomotorCustomIDMimicEnvCfg,
+)
+from .franka_stack_ik_rel_visuomotor_custom_gap_mimic_env_cfg import (
+    FrankaCubeStackIKRelVisuomotorCustomGapMimicEnvCfg,
+)
+from .franka_stack_ik_rel_visuomotor_custom_gap_id_mimic_env_cfg import (
+    FrankaCubeStackIKRelVisuomotorCustomGapIDMimicEnvCfg,
+)
+
+from .droid_stack_ik_rel_mimic_env import DroidCubeStackIKRelMimicEnv
+from .droid_stack_ik_rel_visuomotor_mimic_env_cfg import (
+    DroidCubeStackIKRelVisuomotorMimicEnvCfg,
+)
+from .droid_stack_ik_rel_visuomotor_sim_mimic_env_cfg import (
+    DroidCubeStackIKRelVisuomotorSimMimicEnvCfg,
+)
+from .droid_stack_ik_rel_visuomotor_sim_id_mimic_env_cfg import (
+    DroidCubeStackIKRelVisuomotorSimIDMimicEnvCfg,
+)
+from .droid_stack_ik_rel_visuomotor_ood_mimic_env_cfg import (
+    DroidCubeStackIKRelVisuomotorOODMimicEnvCfg,
+)
+
 ##
 # Inverse Kinematics - Relative Pose Control
 ##
@@ -213,6 +244,47 @@ gym.register(
     entry_point=f"{__name__}.pick_place_mimic_env:PickPlaceRelMimicEnv",
     kwargs={
         "env_cfg_entry_point": f"{__name__}.agibot_place_toy2box_mimic_env_cfg:RmpFlowAgibotPlaceToy2BoxMimicEnvCfg",
+    },
+    disable_env_checker=True,
+)
+
+
+##
+# Droid Stack Cube with IK - Relative Pose Control
+##
+
+gym.register(
+    id="Isaac-Stack-Cube-Droid-IK-Rel-Visuomotor-Mimic-v0",
+    entry_point="isaaclab_mimic.envs:DroidCubeStackIKRelMimicEnv",
+    kwargs={
+        "env_cfg_entry_point": droid_stack_ik_rel_visuomotor_mimic_env_cfg.DroidCubeStackIKRelVisuomotorMimicEnvCfg,
+    },
+    disable_env_checker=True,
+)
+
+gym.register(
+    id="Isaac-Stack-Cube-Droid-IK-Rel-Visuomotor-Sim-Mimic-v0",
+    entry_point="isaaclab_mimic.envs:DroidCubeStackIKRelMimicEnv",
+    kwargs={
+        "env_cfg_entry_point": droid_stack_ik_rel_visuomotor_sim_mimic_env_cfg.DroidCubeStackIKRelVisuomotorSimMimicEnvCfg,
+    },
+    disable_env_checker=True,
+)
+
+gym.register(
+    id="Isaac-Stack-Cube-Droid-IK-Rel-Visuomotor-Sim-ID-Mimic-v0",
+    entry_point="isaaclab_mimic.envs:DroidCubeStackIKRelMimicEnv",
+    kwargs={
+        "env_cfg_entry_point": droid_stack_ik_rel_visuomotor_sim_id_mimic_env_cfg.DroidCubeStackIKRelVisuomotorSimIDMimicEnvCfg,
+    },
+    disable_env_checker=True,
+)
+
+gym.register(
+    id="Isaac-Stack-Cube-Droid-IK-Rel-Visuomotor-OOD-Mimic-v0",
+    entry_point="isaaclab_mimic.envs:DroidCubeStackIKRelMimicEnv",
+    kwargs={
+        "env_cfg_entry_point": droid_stack_ik_rel_visuomotor_ood_mimic_env_cfg.DroidCubeStackIKRelVisuomotorOODMimicEnvCfg,
     },
     disable_env_checker=True,
 )

@@ -4,8 +4,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import isaaclab.sim as sim_utils
-from isaaclab.controllers.differential_ik_cfg import DifferentialIKControllerCfg
-from isaaclab.envs.mdp.actions.actions_cfg import DifferentialInverseKinematicsActionCfg
+from isaaclab.assets import ArticulationCfg
+from isaaclab.sim.spawners.from_files.from_files_cfg import UsdFileCfg
+from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
@@ -17,19 +18,17 @@ from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, NVIDIA_NUCLEUS_DIR
 from isaaclab_tasks.manager_based.manipulation.stack import mdp
 from isaaclab_tasks.manager_based.manipulation.stack.mdp import franka_stack_events
 
-from . import stack_joint_pos_custom_env_cfg
 from . import stack_joint_pos_env_cfg
-
 
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets.robots.franka import FRANKA_PANDA_HIGH_PD_CFG  # isort: skip
+# from isaaclab_assets.robots.franka import FRANKA_PANDA_HIGH_PD_CFG  # isort: skip
 
 
 @configclass
 class EventCfg(stack_joint_pos_env_cfg.EventCfg):
-    """Configuration for events (custom version for different textures and lighting)."""
+    """Configuration for events."""
 
     randomize_light = EventTerm(
         func=franka_stack_events.randomize_scene_lighting_domelight,
@@ -50,9 +49,9 @@ class EventCfg(stack_joint_pos_env_cfg.EventCfg):
                 f"{NVIDIA_NUCLEUS_DIR}/Assets/Skies/Indoor/surgery_4k.hdr",
                 f"{NVIDIA_NUCLEUS_DIR}/Assets/Skies/Studio/photo_studio_01_4k.hdr",
             ],
-            "default_intensity": 3000.0,
+            "default_intensity": 1500.0,
             "default_color": (0.75, 0.75, 0.75),
-            "default_texture": "",
+            "default_texture": f"{NVIDIA_NUCLEUS_DIR}/Assets/Skies/Cloudy/lakeside_4k.hdr",
         },
     )
 
@@ -62,8 +61,8 @@ class EventCfg(stack_joint_pos_env_cfg.EventCfg):
         params={
             "asset_cfg": SceneEntityCfg("table"),
             "textures": [
-                f"{NVIDIA_NUCLEUS_DIR}/Materials/Base/Wood/Bamboo_Planks/Bamboo_Planks_BaseColor.png",
                 f"{NVIDIA_NUCLEUS_DIR}/Materials/Base/Wood/Ash/Ash_BaseColor.png",
+                f"{NVIDIA_NUCLEUS_DIR}/Materials/Base/Wood/Bamboo_Planks/Bamboo_Planks_BaseColor.png",
                 f"{NVIDIA_NUCLEUS_DIR}/Materials/Base/Wood/Birch/Birch_BaseColor.png",
                 f"{NVIDIA_NUCLEUS_DIR}/Materials/Base/Wood/Cherry/Cherry_BaseColor.png",
                 f"{NVIDIA_NUCLEUS_DIR}/Materials/Base/Wood/Mahogany_Planks/Mahogany_Planks_BaseColor.png",
@@ -75,30 +74,9 @@ class EventCfg(stack_joint_pos_env_cfg.EventCfg):
                 f"{NVIDIA_NUCLEUS_DIR}/Materials/Base/Stone/Marble/Marble_BaseColor.png",
                 f"{NVIDIA_NUCLEUS_DIR}/Materials/Base/Metals/Steel_Stainless/Steel_Stainless_BaseColor.png",
             ],
-            "default_texture": f"{NVIDIA_NUCLEUS_DIR}/Materials/Base/Wood/Timber/Timber_BaseColor.png",
-        },
-    )
-
-    randomize_robot_arm_visual_texture = EventTerm(
-        func=franka_stack_events.randomize_visual_texture_material,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot"),
-            "textures": [
-                f"{NVIDIA_NUCLEUS_DIR}/Materials/Base/Metals/Aluminum_Cast/Aluminum_Cast_BaseColor.png",
-                f"{NVIDIA_NUCLEUS_DIR}/Materials/Base/Metals/Aluminum_Polished/Aluminum_Polished_BaseColor.png",
-                f"{NVIDIA_NUCLEUS_DIR}/Materials/Base/Metals/Brass/Brass_BaseColor.png",
-                f"{NVIDIA_NUCLEUS_DIR}/Materials/Base/Metals/Bronze/Bronze_BaseColor.png",
-                f"{NVIDIA_NUCLEUS_DIR}/Materials/Base/Metals/Brushed_Antique_Copper/Brushed_Antique_Copper_BaseColor.png",
-                f"{NVIDIA_NUCLEUS_DIR}/Materials/Base/Metals/Cast_Metal_Silver_Vein/Cast_Metal_Silver_Vein_BaseColor.png",
-                f"{NVIDIA_NUCLEUS_DIR}/Materials/Base/Metals/Copper/Copper_BaseColor.png",
-                f"{NVIDIA_NUCLEUS_DIR}/Materials/Base/Metals/Gold/Gold_BaseColor.png",
-                f"{NVIDIA_NUCLEUS_DIR}/Materials/Base/Metals/Iron/Iron_BaseColor.png",
-                f"{NVIDIA_NUCLEUS_DIR}/Materials/Base/Metals/RustedMetal/RustedMetal_BaseColor.png",
-                f"{NVIDIA_NUCLEUS_DIR}/Materials/Base/Metals/Silver/Silver_BaseColor.png",
-                f"{NVIDIA_NUCLEUS_DIR}/Materials/Base/Metals/Steel_Carbon/Steel_Carbon_BaseColor.png",
-                f"{NVIDIA_NUCLEUS_DIR}/Materials/Base/Metals/Steel_Stainless/Steel_Stainless_BaseColor.png",
-            ],
+            "default_texture": (
+                f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/SeattleLabTable/Materials/Textures/DemoTable_TableBase_BaseColor.png"
+            ),
         },
     )
 
@@ -112,8 +90,8 @@ class ObservationsCfg:
         """Observations for policy group with state values."""
 
         actions = ObsTerm(func=mdp.last_action)
-        joint_pos = ObsTerm(func=mdp.joint_pos_rel)
-        joint_vel = ObsTerm(func=mdp.joint_vel_rel)
+        joint_pos = ObsTerm(func=mdp.joint_pos)
+        joint_vel = ObsTerm(func=mdp.joint_vel)
         object = ObsTerm(func=mdp.object_obs)
         cube_positions = ObsTerm(func=mdp.cube_positions_in_world_frame)
         cube_orientations = ObsTerm(func=mdp.cube_orientations_in_world_frame)
@@ -121,10 +99,20 @@ class ObservationsCfg:
         eef_quat = ObsTerm(func=mdp.ee_frame_quat)
         gripper_pos = ObsTerm(func=mdp.gripper_pos)
         table_cam = ObsTerm(
-            func=mdp.image, params={"sensor_cfg": SceneEntityCfg("table_cam"), "data_type": "rgb", "normalize": False}
+            func=mdp.image,
+            params={
+                "sensor_cfg": SceneEntityCfg("table_cam"),
+                "data_type": "rgb",
+                "normalize": False,
+            },
         )
         wrist_cam = ObsTerm(
-            func=mdp.image, params={"sensor_cfg": SceneEntityCfg("wrist_cam"), "data_type": "rgb", "normalize": False}
+            func=mdp.image,
+            params={
+                "sensor_cfg": SceneEntityCfg("wrist_cam"),
+                "data_type": "rgb",
+                "normalize": False,
+            },
         )
 
         def __post_init__(self):
@@ -170,7 +158,7 @@ class ObservationsCfg:
 
 
 @configclass
-class FrankaCubeStackVisuomotorCustomIDEnvCfg(stack_joint_pos_custom_env_cfg.FrankaCubeStackEnvCfg):
+class DroidCubeStackVisuomotorEnvCfg(stack_joint_pos_env_cfg.DroidCubeStackEnvCfg):
     observations: ObservationsCfg = ObservationsCfg()
 
     # Evaluation settings
@@ -184,34 +172,25 @@ class FrankaCubeStackVisuomotorCustomIDEnvCfg(stack_joint_pos_custom_env_cfg.Fra
         # Set events
         self.events = EventCfg()
 
-        # Set Franka as robot
-        # We switch here to a stiffer PD controller for IK tracking to be better.
-        self.scene.robot = FRANKA_PANDA_HIGH_PD_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
-        self.scene.robot.spawn.semantic_tags = [("class", "robot")]
-
-        # Set actions for the specific robot type (franka)
-        self.actions.arm_action = DifferentialInverseKinematicsActionCfg(
-            asset_name="robot",
-            joint_names=["panda_joint.*"],
-            body_name="panda_hand",
-            controller=DifferentialIKControllerCfg(command_type="pose", use_relative_mode=True, ik_method="dls"),
-            scale=0.5,
-            body_offset=DifferentialInverseKinematicsActionCfg.OffsetCfg(pos=[0.0, 0.0, 0.107]),
-        )
-
         # Set cameras
         # Set wrist camera
         self.scene.wrist_cam = CameraCfg(
-            prim_path="{ENV_REGEX_NS}/Robot/panda_hand/wrist_cam",
+            prim_path="{ENV_REGEX_NS}/Robot/base_link/wrist_cam",
             update_period=0.0,
-            height=120,
-            width=120,
+            height=144,
+            width=256,
             data_types=["rgb", "distance_to_image_plane"],
             spawn=sim_utils.PinholeCameraCfg(
-                focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 2)
+                focal_length=12.0,
+                focus_distance=400.0,
+                horizontal_aperture=20.955,
+                clipping_range=(0.01, 2),
             ),
             offset=CameraCfg.OffsetCfg(
-                pos=(0.13, 0.0, -0.15), rot=(-0.70614, 0.03701, 0.03701, -0.70614), convention="ros"
+                # pos=(-0.03, -0.03, -0.09), rot=(-0.56472, -0.42555, -0.42555, -0.56472), convention="ros"
+                pos=(0.005, -0.03, -0.07),
+                rot=(-0.56472, -0.42555, -0.42555, -0.56472),
+                convention="ros",
             ),
         )
 
@@ -219,14 +198,19 @@ class FrankaCubeStackVisuomotorCustomIDEnvCfg(stack_joint_pos_custom_env_cfg.Fra
         self.scene.table_cam = CameraCfg(
             prim_path="{ENV_REGEX_NS}/table_cam",
             update_period=0.0,
-            height=120,
-            width=120,
+            height=144,
+            width=256,
             data_types=["rgb", "distance_to_image_plane"],
             spawn=sim_utils.PinholeCameraCfg(
-                focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 2)
+                focal_length=15.0,
+                focus_distance=400.0,
+                horizontal_aperture=20.955,
+                clipping_range=(0.1, 2),
             ),
             offset=CameraCfg.OffsetCfg(
-                pos=(1.0, 0.0, 0.4), rot=(0.35355, -0.61237, -0.61237, 0.35355), convention="ros"
+                pos=(1.0, 0.0, 0.4),
+                rot=(0.35355, -0.61237, -0.61237, 0.35355),
+                convention="ros",
             ),
         )
 
