@@ -71,11 +71,11 @@ class EventCfg:
         params={
             "pose_range": {
                 "x": (0.3, 0.6),
-                "y": (-0.3, 0.3),
-                "z": (ASSET_INIT_POS[2] + 0.002, ASSET_INIT_POS[2] + 0.002),
+                "y": (-0.3, 0.4),
+                "z": (ASSET_INIT_POS[2], ASSET_INIT_POS[2]),
                 "yaw": (-1.0, 1, 0),
             },
-            "min_separation": 0.1,
+            "min_separation": 0.25,
             "asset_cfgs": [
                 SceneEntityCfg("cup"),
                 SceneEntityCfg("plant"),

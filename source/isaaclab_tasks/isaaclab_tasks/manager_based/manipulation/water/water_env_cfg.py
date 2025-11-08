@@ -55,17 +55,28 @@ rigid_body_properties = RigidBodyPropertiesCfg(
 class WaterSceneCfg(InteractiveSceneCfg):
     """Configuration for the water plant scene."""
 
-    # Background
-    background = AssetBaseCfg(
-        prim_path="/World/Background",
+    # # Background
+    # background = AssetBaseCfg(
+    #     prim_path="/World/Background",
+    #     init_state=ASSET_INIT_STATE,
+    #     spawn=UsdFileCfg(
+    #         usd_path=os.path.abspath(
+    #             os.path.join(
+    #                 ASSET_DIR,
+    #                 "background.usd",
+    #             )
+    #         )
+    #     ),
+    # )
+
+    # table
+    table = AssetBaseCfg(
+        prim_path="/World/table",
         init_state=ASSET_INIT_STATE,
         spawn=UsdFileCfg(
             usd_path=os.path.abspath(
-                os.path.join(
-                    ASSET_DIR,
-                    "background.usd",
-                )
-            )
+                os.path.join(ASSET_DIR.rsplit("/", 1)[0], "table.usd")
+            ),
         ),
     )
 
@@ -213,7 +224,18 @@ class TerminationsCfg:
 
     cup_dropping = DoneTerm(
         func=mdp.root_height_below_minimum,
-        params={"minimum_height": 0.0, "asset_cfg": SceneEntityCfg("cup")},
+        params={
+            "minimum_height": ASSET_INIT_POS[2] - 0.1,
+            "asset_cfg": SceneEntityCfg("cup"),
+        },
+    )
+
+    plant_dropping = DoneTerm(
+        func=mdp.root_height_below_minimum,
+        params={
+            "minimum_height": ASSET_INIT_POS[2] - 0.1,
+            "asset_cfg": SceneEntityCfg("plant"),
+        },
     )
 
     cup_pouring = DoneTerm(
