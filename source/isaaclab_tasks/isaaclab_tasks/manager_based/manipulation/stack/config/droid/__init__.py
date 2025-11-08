@@ -13,6 +13,7 @@ from . import (
     stack_joint_pos_visuomotor_ood_env_cfg,
     stack_joint_pos_visuomotor_sim_env_cfg,
     stack_joint_pos_visuomotor_sim_id_env_cfg,
+    # stack_ik_env_cfg,
     stack_ik_rel_visuomotor_env_cfg,
     stack_ik_rel_visuomotor_ood_env_cfg,
     stack_ik_rel_visuomotor_sim_env_cfg,
