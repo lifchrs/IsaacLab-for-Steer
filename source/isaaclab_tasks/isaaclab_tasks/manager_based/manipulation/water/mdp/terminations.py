@@ -43,7 +43,7 @@ def root_velocity_exceeds_threshold(
     env: ManagerBasedRLEnv,
     asset_cfg: SceneEntityCfg,
     lin_vel_threshold: float = 0.05,
-    ang_vel_threshold: float = 0.1,
+    ang_vel_threshold: float = 0.5,
 ):
     asset: RigidObject = env.scene[asset_cfg.name]
 
@@ -58,6 +58,14 @@ def root_velocity_exceeds_threshold(
     done = torch.logical_or(
         asset_lin_vel_norm > lin_vel_threshold, asset_ang_vel_norm > ang_vel_threshold
     )
+
+    # for i in range(done.shape[0]):
+    #     if done[i]:
+    #         print(f"env {i} done")
+    #         print(f"asset_lin_vel_norm: {asset_lin_vel_norm[i]}")
+    #         print(f"asset_ang_vel_norm: {asset_ang_vel_norm[i]}")
+    #         print(f"lin_vel_threshold: {lin_vel_threshold}")
+    #         print(f"ang_vel_threshold: {ang_vel_threshold}")
 
     return done
 

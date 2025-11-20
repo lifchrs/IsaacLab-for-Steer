@@ -232,8 +232,6 @@ class TerminationsCfg:
         func=mdp.root_velocity_exceeds_threshold,
         params={
             "asset_cfg": SceneEntityCfg("bowl"),
-            "lin_vel_threshold": 0.05,
-            "ang_vel_threshold": 0.1,
         },
     )
 
@@ -241,8 +239,6 @@ class TerminationsCfg:
         func=mdp.root_velocity_exceeds_threshold,
         params={
             "asset_cfg": SceneEntityCfg("plant"),
-            "lin_vel_threshold": 0.05,
-            "ang_vel_threshold": 0.1,
         },
     )
 
