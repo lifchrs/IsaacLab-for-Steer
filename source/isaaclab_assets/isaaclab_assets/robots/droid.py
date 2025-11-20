@@ -22,14 +22,14 @@ from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
 
 from pathlib import Path
 
-ASSET_PATH = Path(__file__).parent / "../../../../asset"
+ASSET_PATH = Path(__file__).parent / "../../../../assets/droid"
 ##
 # Configuration
 ##
 DROID_CFG = ArticulationCfg(
     prim_path="{ENV_REGEX_NS}/robot",
     spawn=sim_utils.UsdFileCfg(
-        usd_path=f"{ASSET_PATH}/droid_arhan.usd",
+        usd_path=f"{ASSET_PATH}/droid.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=True,

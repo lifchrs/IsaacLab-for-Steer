@@ -70,3 +70,8 @@ tests/
 
 # Docker history
 .isaac-lab-docker-history
+
+
+# Assets
+asset/
+assets/
