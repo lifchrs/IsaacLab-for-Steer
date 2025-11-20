@@ -13,7 +13,6 @@
 **/*.usda
 **/*.usdc
 **/*.usdz
-!asset/droid/droid.usd
 
 # Python
 .DS_Store
