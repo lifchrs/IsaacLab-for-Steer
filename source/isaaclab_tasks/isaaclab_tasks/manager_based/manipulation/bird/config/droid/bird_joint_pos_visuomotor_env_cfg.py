@@ -21,7 +21,7 @@ from isaaclab_tasks.manager_based.manipulation.bird.bird_env_cfg import (
     BirdEnvCfg,
 )
 
-from isaaclab_assets.robots.franka import DROID_CFG  # isort: skip
+from isaaclab_assets.robots.droid import DROID_CFG  # isort: skip
 from isaaclab.markers.config import FRAME_MARKER_CFG  # isort: skip
 
 ASSET_DIR = os.path.join(
@@ -83,9 +83,7 @@ class EventCfg:
                 SceneEntityCfg("bird"),
                 SceneEntityCfg("pig"),
                 SceneEntityCfg("vase"),
-                SceneEntityCfg("block_2"),
-                SceneEntityCfg("block_3"),
-                SceneEntityCfg("block_4"),
+                SceneEntityCfg("block"),
             ],
         },
     )
@@ -207,7 +205,41 @@ class DroidBirdJointPosVisuomotorEnvCfg(BirdEnvCfg):
             use_default_offset=False,
         )
 
-        self.actions.gripper_action = mdp.BinaryJointPositionActionCfg(
+        # self.actions.gripper_action = mdp.BinaryJointPositionActionCfg(
+        #     asset_name="robot",
+        #     joint_names=[
+        #         "finger_joint",
+        #         "right_outer_knuckle_joint",
+        #         "right_outer_finger_joint",
+        #         "right_inner_finger_joint",
+        #         "right_inner_finger_knuckle_joint",
+        #         "left_outer_finger_joint",
+        #         "left_inner_finger_knuckle_joint",
+        #         "left_inner_finger_joint",
+        #     ],
+        #     open_command_expr={
+        #         "finger_joint": 0.0,
+        #         "right_outer_knuckle_joint": 0.0,
+        #         "right_outer_finger_joint": 0.0,
+        #         "right_inner_finger_joint": 0.0,
+        #         "right_inner_finger_knuckle_joint": 0.0,
+        #         "left_outer_finger_joint": 0.0,
+        #         "left_inner_finger_knuckle_joint": 0.0,
+        #         "left_inner_finger_joint": 0.0,
+        #     },
+        #     close_command_expr={
+        #         "finger_joint": 0.785398163,
+        #         "right_outer_knuckle_joint": 0.785398163,
+        #         "right_outer_finger_joint": 0.0,
+        #         "right_inner_finger_joint": 0.785398163,
+        #         "right_inner_finger_knuckle_joint": -0.785398163,
+        #         "left_outer_finger_joint": 0.0,
+        #         "left_inner_finger_knuckle_joint": -0.785398163,
+        #         "left_inner_finger_joint": -0.785398163,
+        #     },
+        # )
+
+        self.actions.gripper_action = mdp.JointPositionActionCfg(
             asset_name="robot",
             joint_names=[
                 "finger_joint",
@@ -219,26 +251,8 @@ class DroidBirdJointPosVisuomotorEnvCfg(BirdEnvCfg):
                 "left_inner_finger_knuckle_joint",
                 "left_inner_finger_joint",
             ],
-            open_command_expr={
-                "finger_joint": 0.0,
-                "right_outer_knuckle_joint": 0.0,
-                "right_outer_finger_joint": 0.0,
-                "right_inner_finger_joint": 0.0,
-                "right_inner_finger_knuckle_joint": 0.0,
-                "left_outer_finger_joint": 0.0,
-                "left_inner_finger_knuckle_joint": 0.0,
-                "left_inner_finger_joint": 0.0,
-            },
-            close_command_expr={
-                "finger_joint": 0.785398163,
-                "right_outer_knuckle_joint": 0.785398163,
-                "right_outer_finger_joint": 0.0,
-                "right_inner_finger_joint": 0.785398163,
-                "right_inner_finger_knuckle_joint": -0.785398163,
-                "left_outer_finger_joint": 0.0,
-                "left_inner_finger_knuckle_joint": -0.785398163,
-                "left_inner_finger_joint": -0.785398163,
-            },
+            scale=1.0,
+            use_default_offset=False,
         )
 
         # utilities for gripper status check

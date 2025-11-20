@@ -239,7 +239,7 @@ class DroidStackEnvCfg(ManagerBasedRLEnvCfg):
         self.decimation = 6
         self.episode_length_s = 30.0
         # simulation settings
-        self.sim.dt = 1 / (6 * 15)  # control frequency: 15Hz, decimation: 5
+        self.sim.dt = 1 / (6 * 15)  # control frequency: 15Hz, decimation: 6
         self.sim.render_interval = 2
 
         self.sim.physx.bounce_threshold_velocity = 0.2

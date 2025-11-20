@@ -29,6 +29,7 @@ def pig_hit(
     vase_cfg: SceneEntityCfg = SceneEntityCfg("vase"),
     atol=0.0001,
     rtol=0.0001,
+    height_threshold=-0.1,
 ):
     robot: Articulation = env.scene[robot_cfg.name]
     pig: RigidObject = env.scene[pig_cfg.name]
@@ -37,15 +38,15 @@ def pig_hit(
 
     # check if the pig is knocked over (changed position)
     h_pig = pig.data.root_pos_w[:, 2]
-    hit = h_pig < 0.02
+    hit = h_pig < height_threshold
 
     # check if the vase is knocked over
     h_vase = vase.data.root_pos_w[:, 2]
-    hit = torch.logical_and(hit, h_vase < 0.02)
+    hit = torch.logical_and(hit, h_vase < height_threshold)
 
     # check if the bird changed position
     h_bird = bird.data.root_pos_w[:, 2]
-    hit = torch.logical_and(hit, h_bird < 0.02)
+    hit = torch.logical_and(hit, h_bird < height_threshold)
 
     # Check gripper positions
     if hasattr(env.scene, "surface_grippers") and len(env.scene.surface_grippers) > 0:

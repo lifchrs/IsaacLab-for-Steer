@@ -5,7 +5,10 @@
 
 from dataclasses import MISSING
 
-from isaaclab.controllers import DifferentialIKControllerCfg, OperationalSpaceControllerCfg
+from isaaclab.controllers import (
+    DifferentialIKControllerCfg,
+    OperationalSpaceControllerCfg,
+)
 from isaaclab.managers.action_manager import ActionTerm, ActionTermCfg
 from isaaclab.utils import configclass
 
@@ -16,6 +19,8 @@ from . import (
     non_holonomic_actions,
     surface_gripper_actions,
     task_space_actions,
+    progressive_joint_actions,
+    binary_zero_one_joint_actions,
 )
 
 ##
@@ -139,7 +144,9 @@ class EMAJointPositionToLimitsActionCfg(JointPositionToLimitsActionCfg):
     See :class:`EMAJointPositionToLimitsAction` for more details.
     """
 
-    class_type: type[ActionTerm] = joint_actions_to_limits.EMAJointPositionToLimitsAction
+    class_type: type[ActionTerm] = (
+        joint_actions_to_limits.EMAJointPositionToLimitsAction
+    )
 
     alpha: float | dict[str, float] = 1.0
     """The weight for the moving average (float or dict of regex expressions). Defaults to 1.0.
@@ -223,6 +230,59 @@ class AbsBinaryJointPositionActionCfg(ActionTermCfg):
     class_type: type[ActionTerm] = binary_joint_actions.AbsBinaryJointPositionAction
 
 
+@configclass
+class ProgressiveJointActionCfg(ActionTermCfg):
+    """Configuration for the progressive joint action term.
+
+    See :class:`ProgressiveJointAction` for more details.
+    """
+
+    joint_names: list[str] = MISSING
+    """List of joint names or regex expressions that the action will be mapped to."""
+    open_command_expr: dict[str, float] = MISSING
+    """The joint command to move to *open* configuration."""
+    close_command_expr: dict[str, float] = MISSING
+    """The joint command to move to *close* configuration."""
+    total_progress: int = MISSING
+    """The total number of steps to reach close configuration."""
+
+
+@configclass
+class ProgressiveJointPositionActionCfg(ProgressiveJointActionCfg):
+    """Configuration for the progressive joint position action term.
+
+    See :class:`ProgressiveJointPositionAction` for more details.
+    """
+
+    class_type: type[ActionTerm] = (
+        progressive_joint_actions.ProgressiveJointPositionAction
+    )
+
+
+@configclass
+class BinaryZeroOneJointActionCfg(BinaryJointActionCfg):
+    """Configuration for the binary zero one joint action term.
+
+    See :class:`BinaryZeroOneJointAction` for more details.
+    """
+
+    class_type: type[ActionTerm] = (
+        binary_zero_one_joint_actions.BinaryZeroOneJointAction
+    )
+
+
+@configclass
+class BinaryZeroOneJointPositionActionCfg(BinaryZeroOneJointActionCfg):
+    """Configuration for the binary zero one joint position action term.
+
+    See :class:`BinaryZeroOneJointPositionAction` for more details.
+    """
+
+    class_type: type[ActionTerm] = (
+        binary_zero_one_joint_actions.BinaryZeroOneJointPositionAction
+    )
+
+
 ##
 # Non-holonomic actions.
 ##
@@ -278,7 +338,9 @@ class DifferentialInverseKinematicsActionCfg(ActionTermCfg):
         rot: tuple[float, float, float, float] = (1.0, 0.0, 0.0, 0.0)
         """Quaternion rotation ``(w, x, y, z)`` w.r.t. the parent frame. Defaults to (1.0, 0.0, 0.0, 0.0)."""
 
-    class_type: type[ActionTerm] = task_space_actions.DifferentialInverseKinematicsAction
+    class_type: type[ActionTerm] = (
+        task_space_actions.DifferentialInverseKinematicsAction
+    )
 
     joint_names: list[str] = MISSING
     """List of joint names or regex expressions that the action will be mapped to."""

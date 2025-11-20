@@ -29,10 +29,12 @@ ASSET_DIR = os.path.join(
     "../../../../../../../diffusion_policy/reconstruction/asset/angry_world",
 )
 
-asset_init_state = RigidObjectCfg.InitialStateCfg(
-    pos=[0.2, 0.0, 0.0],
-    # rot=[0, 0, -sqrt(2) / 2, sqrt(2) / 2],
-    rot=[1.0, 0.0, 0.0, 0.0],
+ASSET_INIT_POS = [0.25, 0.0, -0.05]
+ASSET_INIT_ROT = [1.0, 0.0, 0.0, 0.0]
+
+ASSET_INIT_STATE = RigidObjectCfg.InitialStateCfg(
+    pos=ASSET_INIT_POS,
+    rot=ASSET_INIT_ROT,
 )
 
 rigid_body_properties = RigidBodyPropertiesCfg(
@@ -52,23 +54,37 @@ rigid_body_properties = RigidBodyPropertiesCfg(
 class BirdSceneCfg(InteractiveSceneCfg):
     """Configuration for the angry bird scene."""
 
-    # Background
-    background = AssetBaseCfg(
-        prim_path="/World/Background",
-        init_state=asset_init_state,
+    # # Background
+    # background = AssetBaseCfg(
+    #     prim_path="/World/Background",
+    #     init_state=asset_init_state,
+    #     spawn=UsdFileCfg(
+    #         usd_path=os.path.abspath(
+    #             os.path.join(
+    #                 ASSET_DIR,
+    #                 "background.usd",
+    #             )
+    #         )
+    #     ),
+    # )
+
+    # table
+    table = AssetBaseCfg(
+        prim_path="/World/table",
+        init_state=RigidObjectCfg.InitialStateCfg(
+            pos=[0.25, 0.0, -0.08],
+            rot=ASSET_INIT_ROT,
+        ),
         spawn=UsdFileCfg(
             usd_path=os.path.abspath(
-                os.path.join(
-                    ASSET_DIR,
-                    "background.usd",
-                )
-            )
+                os.path.join(ASSET_DIR.rsplit("/", 1)[0], "table.usd")
+            ),
         ),
     )
 
     bird = RigidObjectCfg(
         prim_path="/World/bird",
-        init_state=asset_init_state,
+        init_state=ASSET_INIT_STATE,
         spawn=UsdFileCfg(
             usd_path=os.path.abspath(os.path.join(ASSET_DIR, "angry_bird.usd")),
             scale=(1.0, 1.0, 1.0),
@@ -79,9 +95,9 @@ class BirdSceneCfg(InteractiveSceneCfg):
 
     pig = RigidObjectCfg(
         prim_path="/World/pig",
-        init_state=asset_init_state,
+        init_state=ASSET_INIT_STATE,
         spawn=UsdFileCfg(
-            usd_path=os.path.abspath(os.path.join(ASSET_DIR, "block_1.usd")),
+            usd_path=os.path.abspath(os.path.join(ASSET_DIR, "pig.usd")),
             scale=(1.0, 1.0, 1.0),
             rigid_props=rigid_body_properties,
             semantic_tags=[("class", "pig")],
@@ -90,7 +106,7 @@ class BirdSceneCfg(InteractiveSceneCfg):
 
     vase = RigidObjectCfg(
         prim_path="/World/vase",
-        init_state=asset_init_state,
+        init_state=ASSET_INIT_STATE,
         spawn=UsdFileCfg(
             usd_path=os.path.abspath(os.path.join(ASSET_DIR, "vase.usd")),
             scale=(1.0, 1.0, 1.0),
@@ -99,38 +115,49 @@ class BirdSceneCfg(InteractiveSceneCfg):
         ),
     )
 
-    block_2 = RigidObjectCfg(
-        prim_path="/World/block_2",
-        init_state=asset_init_state,
+    block = RigidObjectCfg(
+        prim_path="/World/block",
+        init_state=ASSET_INIT_STATE,
         spawn=UsdFileCfg(
-            usd_path=os.path.abspath(os.path.join(ASSET_DIR, "block_2.usd")),
+            usd_path=os.path.abspath(os.path.join(ASSET_DIR, "block.usd")),
             scale=(1.0, 1.0, 1.0),
             rigid_props=rigid_body_properties,
-            semantic_tags=[("class", "block_2")],
+            semantic_tags=[("class", "block")],
         ),
     )
 
-    block_3 = RigidObjectCfg(
-        prim_path="/World/block_3",
-        init_state=asset_init_state,
-        spawn=UsdFileCfg(
-            usd_path=os.path.abspath(os.path.join(ASSET_DIR, "block_3.usd")),
-            scale=(1.0, 1.0, 1.0),
-            rigid_props=rigid_body_properties,
-            semantic_tags=[("class", "block_3")],
-        ),
-    )
+    # block_2 = RigidObjectCfg(
+    #     prim_path="/World/block_2",
+    #     init_state=asset_init_state,
+    #     spawn=UsdFileCfg(
+    #         usd_path=os.path.abspath(os.path.join(ASSET_DIR, "block_2.usd")),
+    #         scale=(1.0, 1.0, 1.0),
+    #         rigid_props=rigid_body_properties,
+    #         semantic_tags=[("class", "block_2")],
+    #     ),
+    # )
 
-    block_4 = RigidObjectCfg(
-        prim_path="/World/block_4",
-        init_state=asset_init_state,
-        spawn=UsdFileCfg(
-            usd_path=os.path.abspath(os.path.join(ASSET_DIR, "block_4.usd")),
-            scale=(1.0, 1.0, 1.0),
-            rigid_props=rigid_body_properties,
-            semantic_tags=[("class", "block_4")],
-        ),
-    )
+    # block_3 = RigidObjectCfg(
+    #     prim_path="/World/block_3",
+    #     init_state=asset_init_state,
+    #     spawn=UsdFileCfg(
+    #         usd_path=os.path.abspath(os.path.join(ASSET_DIR, "block_3.usd")),
+    #         scale=(1.0, 1.0, 1.0),
+    #         rigid_props=rigid_body_properties,
+    #         semantic_tags=[("class", "block_3")],
+    #     ),
+    # )
+
+    # block_4 = RigidObjectCfg(
+    #     prim_path="/World/block_4",
+    #     init_state=asset_init_state,
+    #     spawn=UsdFileCfg(
+    #         usd_path=os.path.abspath(os.path.join(ASSET_DIR, "block_4.usd")),
+    #         scale=(1.0, 1.0, 1.0),
+    #         rigid_props=rigid_body_properties,
+    #         semantic_tags=[("class", "block_4")],
+    #     ),
+    # )
 
     # lights
     light = AssetBaseCfg(
@@ -234,12 +261,18 @@ class TerminationsCfg:
 
     bird_dropping = DoneTerm(
         func=mdp.root_height_below_minimum,
-        params={"minimum_height": -0.05, "asset_cfg": SceneEntityCfg("bird")},
+        params={
+            "minimum_height": ASSET_INIT_POS[2] - 0.1,
+            "asset_cfg": SceneEntityCfg("bird"),
+        },
     )
 
     vase_dropping = DoneTerm(
         func=mdp.root_height_below_minimum,
-        params={"minimum_height": 0.03, "asset_cfg": SceneEntityCfg("vase")},
+        params={
+            "minimum_height": ASSET_INIT_POS[2] - 0.1,
+            "asset_cfg": SceneEntityCfg("vase"),
+        },
     )
 
     success = DoneTerm(func=mdp.pig_hit)

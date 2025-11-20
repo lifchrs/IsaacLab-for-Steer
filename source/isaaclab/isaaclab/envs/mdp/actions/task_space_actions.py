@@ -18,7 +18,12 @@ from isaaclab.assets.articulation import Articulation
 from isaaclab.controllers.differential_ik import DifferentialIKController
 from isaaclab.controllers.operational_space import OperationalSpaceController
 from isaaclab.managers.action_manager import ActionTerm
-from isaaclab.sensors import ContactSensor, ContactSensorCfg, FrameTransformer, FrameTransformerCfg
+from isaaclab.sensors import (
+    ContactSensor,
+    ContactSensorCfg,
+    FrameTransformer,
+    FrameTransformerCfg,
+)
 from isaaclab.sim.utils import find_matching_prims
 
 if TYPE_CHECKING:
@@ -51,12 +56,18 @@ class DifferentialInverseKinematicsAction(ActionTerm):
     _clip: torch.Tensor
     """The clip applied to the input action."""
 
-    def __init__(self, cfg: actions_cfg.DifferentialInverseKinematicsActionCfg, env: ManagerBasedEnv):
+    def __init__(
+        self,
+        cfg: actions_cfg.DifferentialInverseKinematicsActionCfg,
+        env: ManagerBasedEnv,
+    ):
         # initialize the action term
         super().__init__(cfg, env)
 
         # resolve the joints over which the action term is applied
-        self._joint_ids, self._joint_names = self._asset.find_joints(self.cfg.joint_names)
+        self._joint_ids, self._joint_names = self._asset.find_joints(
+            self.cfg.joint_names
+        )
         self._num_joints = len(self._joint_ids)
         # parse the body index
         body_ids, body_names = self._asset.find_bodies(self.cfg.body_name)
@@ -95,8 +106,14 @@ class DifferentialInverseKinematicsAction(ActionTerm):
         )
 
         # create tensors for raw and processed actions
-        self._raw_actions = torch.zeros(self.num_envs, self.action_dim, device=self.device)
+        self._raw_actions = torch.zeros(
+            self.num_envs, self.action_dim, device=self.device
+        )
         self._processed_actions = torch.zeros_like(self.raw_actions)
+        # store computed joint position targets from IK solver
+        self._joint_pos_des = torch.zeros(
+            self.num_envs, self._num_joints, device=self.device
+        )
 
         # save the scale as tensors
         self._scale = torch.zeros((self.num_envs, self.action_dim), device=self.device)
@@ -104,21 +121,29 @@ class DifferentialInverseKinematicsAction(ActionTerm):
 
         # convert the fixed offsets to torch tensors of batched shape
         if self.cfg.body_offset is not None:
-            self._offset_pos = torch.tensor(self.cfg.body_offset.pos, device=self.device).repeat(self.num_envs, 1)
-            self._offset_rot = torch.tensor(self.cfg.body_offset.rot, device=self.device).repeat(self.num_envs, 1)
+            self._offset_pos = torch.tensor(
+                self.cfg.body_offset.pos, device=self.device
+            ).repeat(self.num_envs, 1)
+            self._offset_rot = torch.tensor(
+                self.cfg.body_offset.rot, device=self.device
+            ).repeat(self.num_envs, 1)
         else:
             self._offset_pos, self._offset_rot = None, None
 
         # parse clip
         if self.cfg.clip is not None:
             if isinstance(cfg.clip, dict):
-                self._clip = torch.tensor([[-float("inf"), float("inf")]], device=self.device).repeat(
-                    self.num_envs, self.action_dim, 1
+                self._clip = torch.tensor(
+                    [[-float("inf"), float("inf")]], device=self.device
+                ).repeat(self.num_envs, self.action_dim, 1)
+                index_list, _, value_list = string_utils.resolve_matching_names_values(
+                    self.cfg.clip, self._joint_names
                 )
-                index_list, _, value_list = string_utils.resolve_matching_names_values(self.cfg.clip, self._joint_names)
                 self._clip[:, index_list] = torch.tensor(value_list, device=self.device)
             else:
-                raise ValueError(f"Unsupported clip type: {type(cfg.clip)}. Supported types are dict.")
+                raise ValueError(
+                    f"Unsupported clip type: {type(cfg.clip)}. Supported types are dict."
+                )
 
     """
     Properties.
@@ -137,8 +162,19 @@ class DifferentialInverseKinematicsAction(ActionTerm):
         return self._processed_actions
 
     @property
+    def joint_pos_des(self) -> torch.Tensor:
+        """The computed joint position targets from IK solver.
+
+        Returns the joint position targets that result from converting the
+        end-effector pose actions through inverse kinematics.
+        """
+        return self._joint_pos_des
+
+    @property
     def jacobian_w(self) -> torch.Tensor:
-        return self._asset.root_physx_view.get_jacobians()[:, self._jacobi_body_idx, :, self._jacobi_joint_ids]
+        return self._asset.root_physx_view.get_jacobians()[
+            :, self._jacobi_body_idx, :, self._jacobi_joint_ids
+        ]
 
     @property
     def jacobian_b(self) -> torch.Tensor:
@@ -190,12 +226,16 @@ class DifferentialInverseKinematicsAction(ActionTerm):
         self._processed_actions[:] = self.raw_actions * self._scale
         if self.cfg.clip is not None:
             self._processed_actions = torch.clamp(
-                self._processed_actions, min=self._clip[:, :, 0], max=self._clip[:, :, 1]
+                self._processed_actions,
+                min=self._clip[:, :, 0],
+                max=self._clip[:, :, 1],
             )
         # obtain quantities from simulation
         ee_pos_curr, ee_quat_curr = self._compute_frame_pose()
         # set command into controller
-        self._ik_controller.set_command(self._processed_actions, ee_pos_curr, ee_quat_curr)
+        self._ik_controller.set_command(
+            self._processed_actions, ee_pos_curr, ee_quat_curr
+        )
 
     def apply_actions(self):
         # obtain quantities from simulation
@@ -204,14 +244,21 @@ class DifferentialInverseKinematicsAction(ActionTerm):
         # compute the delta in joint-space
         if ee_quat_curr.norm() != 0:
             jacobian = self._compute_frame_jacobian()
-            joint_pos_des = self._ik_controller.compute(ee_pos_curr, ee_quat_curr, jacobian, joint_pos)
+            joint_pos_des = self._ik_controller.compute(
+                ee_pos_curr, ee_quat_curr, jacobian, joint_pos
+            )
         else:
             joint_pos_des = joint_pos.clone()
+        # store the computed joint position targets
+        self._joint_pos_des[:] = joint_pos_des
         # set the joint position command
         self._asset.set_joint_position_target(joint_pos_des, self._joint_ids)
 
     def reset(self, env_ids: Sequence[int] | None = None) -> None:
         self._raw_actions[env_ids] = 0.0
+        # Reset joint position targets to current joint positions
+        joint_pos = self._asset.data.joint_pos[:, self._joint_ids]
+        self._joint_pos_des[env_ids] = joint_pos[env_ids].clone()
 
     """
     Helper functions.
@@ -229,7 +276,9 @@ class DifferentialInverseKinematicsAction(ActionTerm):
         root_pos_w = self._asset.data.root_pos_w
         root_quat_w = self._asset.data.root_quat_w
         # compute the pose of the body in the root frame
-        ee_pose_b, ee_quat_b = math_utils.subtract_frame_transforms(root_pos_w, root_quat_w, ee_pos_w, ee_quat_w)
+        ee_pose_b, ee_quat_b = math_utils.subtract_frame_transforms(
+            root_pos_w, root_quat_w, ee_pos_w, ee_quat_w
+        )
         # account for the offset
         if self.cfg.body_offset is not None:
             ee_pose_b, ee_quat_b = math_utils.combine_frame_transforms(
@@ -253,10 +302,14 @@ class DifferentialInverseKinematicsAction(ActionTerm):
             # v_link = v_ee + w_ee x r_link_ee = v_J_ee * q + w_J_ee * q x r_link_ee
             #        = (v_J_ee + w_J_ee x r_link_ee ) * q
             #        = (v_J_ee - r_link_ee_[x] @ w_J_ee) * q
-            jacobian[:, 0:3, :] += torch.bmm(-math_utils.skew_symmetric_matrix(self._offset_pos), jacobian[:, 3:, :])
+            jacobian[:, 0:3, :] += torch.bmm(
+                -math_utils.skew_symmetric_matrix(self._offset_pos), jacobian[:, 3:, :]
+            )
             # -- rotational part
             # w_link = R_link_ee @ w_ee
-            jacobian[:, 3:, :] = torch.bmm(math_utils.matrix_from_quat(self._offset_rot), jacobian[:, 3:, :])
+            jacobian[:, 3:, :] = torch.bmm(
+                math_utils.matrix_from_quat(self._offset_rot), jacobian[:, 3:, :]
+            )
 
         return jacobian
 
@@ -277,14 +330,18 @@ class OperationalSpaceControllerAction(ActionTerm):
     _task_frame_transformer: FrameTransformer = None
     """The frame transformer for the task frame."""
 
-    def __init__(self, cfg: actions_cfg.OperationalSpaceControllerActionCfg, env: ManagerBasedEnv):
+    def __init__(
+        self, cfg: actions_cfg.OperationalSpaceControllerActionCfg, env: ManagerBasedEnv
+    ):
         # initialize the action term
         super().__init__(cfg, env)
 
         self._sim_dt = env.sim.get_physics_dt()
 
         # resolve the joints over which the action term is applied
-        self._joint_ids, self._joint_names = self._asset.find_joints(self.cfg.joint_names)
+        self._joint_ids, self._joint_names = self._asset.find_joints(
+            self.cfg.joint_names
+        )
         self._num_DoF = len(self._joint_ids)
         # parse the ee body index
         body_ids, body_names = self._asset.find_bodies(self.cfg.body_name)
@@ -320,8 +377,12 @@ class OperationalSpaceControllerAction(ActionTerm):
 
         # convert the fixed offsets to torch tensors of batched shape
         if self.cfg.body_offset is not None:
-            self._offset_pos = torch.tensor(self.cfg.body_offset.pos, device=self.device).repeat(self.num_envs, 1)
-            self._offset_rot = torch.tensor(self.cfg.body_offset.rot, device=self.device).repeat(self.num_envs, 1)
+            self._offset_pos = torch.tensor(
+                self.cfg.body_offset.pos, device=self.device
+            ).repeat(self.num_envs, 1)
+            self._offset_rot = torch.tensor(
+                self.cfg.body_offset.rot, device=self.device
+            ).repeat(self.num_envs, 1)
         else:
             self._offset_pos, self._offset_rot = None, None
 
@@ -330,7 +391,9 @@ class OperationalSpaceControllerAction(ActionTerm):
             "wrench_abs" in self.cfg.controller_cfg.target_types
             and self.cfg.controller_cfg.contact_wrench_stiffness_task is not None
         ):
-            self._contact_sensor_cfg = ContactSensorCfg(prim_path=self._asset.cfg.prim_path + "/" + self._ee_body_name)
+            self._contact_sensor_cfg = ContactSensorCfg(
+                prim_path=self._asset.cfg.prim_path + "/" + self._ee_body_name
+            )
             self._contact_sensor = ContactSensor(self._contact_sensor_cfg)
             if not self._contact_sensor.is_initialized:
                 self._contact_sensor._initialize_impl()
@@ -342,7 +405,9 @@ class OperationalSpaceControllerAction(ActionTerm):
             # The source RigidObject can be any child of the articulation asset (we will not use it),
             # hence, we will use the first RigidObject child.
             root_rigidbody_path = self._first_RigidObject_child_path()
-            task_frame_transformer_path = "/World/envs/env_.*/" + self.cfg.task_frame_rel_path
+            task_frame_transformer_path = (
+                "/World/envs/env_.*/" + self.cfg.task_frame_rel_path
+            )
             task_frame_transformer_cfg = FrameTransformerCfg(
                 prim_path=root_rigidbody_path,
                 target_frames=[
@@ -363,39 +428,61 @@ class OperationalSpaceControllerAction(ActionTerm):
             self._task_frame_pose_b = None
 
         # create the operational space controller
-        self._osc = OperationalSpaceController(cfg=self.cfg.controller_cfg, num_envs=self.num_envs, device=self.device)
+        self._osc = OperationalSpaceController(
+            cfg=self.cfg.controller_cfg, num_envs=self.num_envs, device=self.device
+        )
 
         # create tensors for raw and processed actions
-        self._raw_actions = torch.zeros(self.num_envs, self.action_dim, device=self.device)
+        self._raw_actions = torch.zeros(
+            self.num_envs, self.action_dim, device=self.device
+        )
         self._processed_actions = torch.zeros_like(self.raw_actions)
 
         # create tensors for the dynamic-related quantities
-        self._jacobian_b = torch.zeros(self.num_envs, 6, self._num_DoF, device=self.device)
-        self._mass_matrix = torch.zeros(self.num_envs, self._num_DoF, self._num_DoF, device=self.device)
+        self._jacobian_b = torch.zeros(
+            self.num_envs, 6, self._num_DoF, device=self.device
+        )
+        self._mass_matrix = torch.zeros(
+            self.num_envs, self._num_DoF, self._num_DoF, device=self.device
+        )
         self._gravity = torch.zeros(self.num_envs, self._num_DoF, device=self.device)
 
         # create tensors for the ee states
         self._ee_pose_w = torch.zeros(self.num_envs, 7, device=self.device)
         self._ee_pose_b = torch.zeros(self.num_envs, 7, device=self.device)
-        self._ee_pose_b_no_offset = torch.zeros(self.num_envs, 7, device=self.device)  # The original ee without offset
+        self._ee_pose_b_no_offset = torch.zeros(
+            self.num_envs, 7, device=self.device
+        )  # The original ee without offset
         self._ee_vel_w = torch.zeros(self.num_envs, 6, device=self.device)
         self._ee_vel_b = torch.zeros(self.num_envs, 6, device=self.device)
-        self._ee_force_w = torch.zeros(self.num_envs, 3, device=self.device)  # Only the forces are used for now
-        self._ee_force_b = torch.zeros(self.num_envs, 3, device=self.device)  # Only the forces are used for now
+        self._ee_force_w = torch.zeros(
+            self.num_envs, 3, device=self.device
+        )  # Only the forces are used for now
+        self._ee_force_b = torch.zeros(
+            self.num_envs, 3, device=self.device
+        )  # Only the forces are used for now
 
         # create tensors for the joint states
         self._joint_pos = torch.zeros(self.num_envs, self._num_DoF, device=self.device)
         self._joint_vel = torch.zeros(self.num_envs, self._num_DoF, device=self.device)
 
         # create the joint effort tensor
-        self._joint_efforts = torch.zeros(self.num_envs, self._num_DoF, device=self.device)
+        self._joint_efforts = torch.zeros(
+            self.num_envs, self._num_DoF, device=self.device
+        )
 
         # save the scale as tensors
         self._position_scale = torch.tensor(self.cfg.position_scale, device=self.device)
-        self._orientation_scale = torch.tensor(self.cfg.orientation_scale, device=self.device)
+        self._orientation_scale = torch.tensor(
+            self.cfg.orientation_scale, device=self.device
+        )
         self._wrench_scale = torch.tensor(self.cfg.wrench_scale, device=self.device)
-        self._stiffness_scale = torch.tensor(self.cfg.stiffness_scale, device=self.device)
-        self._damping_ratio_scale = torch.tensor(self.cfg.damping_ratio_scale, device=self.device)
+        self._stiffness_scale = torch.tensor(
+            self.cfg.stiffness_scale, device=self.device
+        )
+        self._damping_ratio_scale = torch.tensor(
+            self.cfg.damping_ratio_scale, device=self.device
+        )
 
         # indexes for the various command elements (e.g., pose_rel, stifness, etc.) within the command tensor
         self._pose_abs_idx = None
@@ -430,7 +517,9 @@ class OperationalSpaceControllerAction(ActionTerm):
 
     @property
     def jacobian_w(self) -> torch.Tensor:
-        return self._asset.root_physx_view.get_jacobians()[:, self._jacobi_ee_body_idx, :, self._jacobi_joint_idx]
+        return self._asset.root_physx_view.get_jacobians()[
+            :, self._jacobi_ee_body_idx, :, self._jacobi_joint_idx
+        ]
 
     @property
     def jacobian_b(self) -> torch.Tensor:
@@ -473,7 +562,9 @@ class OperationalSpaceControllerAction(ActionTerm):
         self._IO_descriptor.wrench_scale = self.cfg.wrench_scale
         self._IO_descriptor.stiffness_scale = self.cfg.stiffness_scale
         self._IO_descriptor.damping_ratio_scale = self.cfg.damping_ratio_scale
-        self._IO_descriptor.nullspace_joint_pos_target = self.cfg.nullspace_joint_pos_target
+        self._IO_descriptor.nullspace_joint_pos_target = (
+            self.cfg.nullspace_joint_pos_target
+        )
         if self.cfg.clip is not None:
             self._IO_descriptor.clip = self.cfg.clip
         else:
@@ -532,7 +623,9 @@ class OperationalSpaceControllerAction(ActionTerm):
             current_joint_vel=self._joint_vel,
             nullspace_joint_pos_target=self._nullspace_joint_pos_target,
         )
-        self._asset.set_joint_effort_target(self._joint_efforts, joint_ids=self._joint_ids)
+        self._asset.set_joint_effort_target(
+            self._joint_efforts, joint_ids=self._joint_ids
+        )
 
     def reset(self, env_ids: Sequence[int] | None = None) -> None:
         """Resets the raw actions and the sensors if available.
@@ -568,10 +661,14 @@ class OperationalSpaceControllerAction(ActionTerm):
                 rigid_child_prim = prim
                 break
         if rigid_child_prim is None:
-            raise ValueError("No child rigid body found under the expression: '{self._asset.cfg.prim_path}'/.")
+            raise ValueError(
+                "No child rigid body found under the expression: '{self._asset.cfg.prim_path}'/."
+            )
         rigid_child_prim_path = rigid_child_prim.GetPath().pathString
         # Remove the specific env index from the path string
-        rigid_child_prim_path = self._asset.cfg.prim_path + "/" + rigid_child_prim_path.split("/")[-1]
+        rigid_child_prim_path = (
+            self._asset.cfg.prim_path + "/" + rigid_child_prim_path.split("/")[-1]
+        )
         return rigid_child_prim_path
 
     def _resolve_command_indexes(self):
@@ -593,7 +690,9 @@ class OperationalSpaceControllerAction(ActionTerm):
                 self._wrench_abs_idx = cmd_idx
                 cmd_idx += 6
             else:
-                raise ValueError("Undefined target_type for OSC within OperationalSpaceControllerAction.")
+                raise ValueError(
+                    "Undefined target_type for OSC within OperationalSpaceControllerAction."
+                )
         # Then iterate over the impedance parameters depending on the impedance mode
         if (
             self.cfg.controller_cfg.impedance_mode == "variable_kp"
@@ -618,13 +717,26 @@ class OperationalSpaceControllerAction(ActionTerm):
             ValueError: If an invalid value is set for nullspace joint pos targets.
         """
 
-        if self.cfg.nullspace_joint_pos_target != "none" and self.cfg.controller_cfg.nullspace_control != "position":
-            raise ValueError("Nullspace joint targets can only be set when null space control is set to 'position'.")
+        if (
+            self.cfg.nullspace_joint_pos_target != "none"
+            and self.cfg.controller_cfg.nullspace_control != "position"
+        ):
+            raise ValueError(
+                "Nullspace joint targets can only be set when null space control is set to 'position'."
+            )
 
-        if self.cfg.nullspace_joint_pos_target == "none" and self.cfg.controller_cfg.nullspace_control == "position":
-            raise ValueError("Nullspace joint targets must be set when null space control is set to 'position'.")
+        if (
+            self.cfg.nullspace_joint_pos_target == "none"
+            and self.cfg.controller_cfg.nullspace_control == "position"
+        ):
+            raise ValueError(
+                "Nullspace joint targets must be set when null space control is set to 'position'."
+            )
 
-        if self.cfg.nullspace_joint_pos_target == "zero" or self.cfg.nullspace_joint_pos_target == "none":
+        if (
+            self.cfg.nullspace_joint_pos_target == "zero"
+            or self.cfg.nullspace_joint_pos_target == "none"
+        ):
             # Keep the nullspace joint targets as None as this is later processed as zero in the controller
             self._nullspace_joint_pos_target = None
         elif self.cfg.nullspace_joint_pos_target == "center":
@@ -634,17 +746,27 @@ class OperationalSpaceControllerAction(ActionTerm):
             )
         elif self.cfg.nullspace_joint_pos_target == "default":
             # Get the default joint positions
-            self._nullspace_joint_pos_target = self._asset.data.default_joint_pos[:, self._joint_ids]
+            self._nullspace_joint_pos_target = self._asset.data.default_joint_pos[
+                :, self._joint_ids
+            ]
         else:
             raise ValueError("Invalid value for nullspace joint pos targets.")
 
     def _compute_dynamic_quantities(self):
         """Computes the dynamic quantities for operational space control."""
 
-        self._mass_matrix[:] = self._asset.root_physx_view.get_generalized_mass_matrices()[:, self._joint_ids, :][
+        self._mass_matrix[
+            :
+        ] = self._asset.root_physx_view.get_generalized_mass_matrices()[
+            :, self._joint_ids, :
+        ][
             :, :, self._joint_ids
         ]
-        self._gravity[:] = self._asset.root_physx_view.get_gravity_compensation_forces()[:, self._joint_ids]
+        self._gravity[
+            :
+        ] = self._asset.root_physx_view.get_gravity_compensation_forces()[
+            :, self._joint_ids
+        ]
 
     def _compute_ee_jacobian(self):
         """Computes the geometric Jacobian of the ee body frame in root frame.
@@ -673,16 +795,23 @@ class OperationalSpaceControllerAction(ActionTerm):
         self._ee_pose_w[:, 0:3] = self._asset.data.body_pos_w[:, self._ee_body_idx]
         self._ee_pose_w[:, 3:7] = self._asset.data.body_quat_w[:, self._ee_body_idx]
         # Compute the pose of the ee body in the root frame
-        self._ee_pose_b_no_offset[:, 0:3], self._ee_pose_b_no_offset[:, 3:7] = math_utils.subtract_frame_transforms(
-            self._asset.data.root_pos_w,
-            self._asset.data.root_quat_w,
-            self._ee_pose_w[:, 0:3],
-            self._ee_pose_w[:, 3:7],
+        self._ee_pose_b_no_offset[:, 0:3], self._ee_pose_b_no_offset[:, 3:7] = (
+            math_utils.subtract_frame_transforms(
+                self._asset.data.root_pos_w,
+                self._asset.data.root_quat_w,
+                self._ee_pose_w[:, 0:3],
+                self._ee_pose_w[:, 3:7],
+            )
         )
         # Account for the offset
         if self.cfg.body_offset is not None:
-            self._ee_pose_b[:, 0:3], self._ee_pose_b[:, 3:7] = math_utils.combine_frame_transforms(
-                self._ee_pose_b_no_offset[:, 0:3], self._ee_pose_b_no_offset[:, 3:7], self._offset_pos, self._offset_rot
+            self._ee_pose_b[:, 0:3], self._ee_pose_b[:, 3:7] = (
+                math_utils.combine_frame_transforms(
+                    self._ee_pose_b_no_offset[:, 0:3],
+                    self._ee_pose_b_no_offset[:, 3:7],
+                    self._offset_pos,
+                    self._offset_rot,
+                )
             )
         else:
             self._ee_pose_b[:] = self._ee_pose_b_no_offset
@@ -695,15 +824,23 @@ class OperationalSpaceControllerAction(ActionTerm):
         relative_vel_w = self._ee_vel_w - self._asset.data.root_vel_w
 
         # Convert ee velocities from world to root frame
-        self._ee_vel_b[:, 0:3] = math_utils.quat_apply_inverse(self._asset.data.root_quat_w, relative_vel_w[:, 0:3])
-        self._ee_vel_b[:, 3:6] = math_utils.quat_apply_inverse(self._asset.data.root_quat_w, relative_vel_w[:, 3:6])
+        self._ee_vel_b[:, 0:3] = math_utils.quat_apply_inverse(
+            self._asset.data.root_quat_w, relative_vel_w[:, 0:3]
+        )
+        self._ee_vel_b[:, 3:6] = math_utils.quat_apply_inverse(
+            self._asset.data.root_quat_w, relative_vel_w[:, 3:6]
+        )
 
         # Account for the offset
         if self.cfg.body_offset is not None:
             # Compute offset vector in root frame
-            r_offset_b = math_utils.quat_apply(self._ee_pose_b_no_offset[:, 3:7], self._offset_pos)
+            r_offset_b = math_utils.quat_apply(
+                self._ee_pose_b_no_offset[:, 3:7], self._offset_pos
+            )
             # Adjust the linear velocity to account for the offset
-            self._ee_vel_b[:, :3] += torch.cross(self._ee_vel_b[:, 3:], r_offset_b, dim=-1)
+            self._ee_vel_b[:, :3] += torch.cross(
+                self._ee_vel_b[:, 3:], r_offset_b, dim=-1
+            )
             # Angular velocity is not affected by the offset
 
     def _compute_ee_force(self):
@@ -713,7 +850,9 @@ class OperationalSpaceControllerAction(ActionTerm):
             self._contact_sensor.update(self._sim_dt)
             self._ee_force_w[:] = self._contact_sensor.data.net_forces_w[:, 0, :]  # type: ignore
             # Rotate forces and torques into root frame
-            self._ee_force_b[:] = math_utils.quat_apply_inverse(self._asset.data.root_quat_w, self._ee_force_w)
+            self._ee_force_b[:] = math_utils.quat_apply_inverse(
+                self._asset.data.root_quat_w, self._ee_force_w
+            )
 
     def _compute_joint_states(self):
         """Computes the joint states for operational space control."""
@@ -724,14 +863,19 @@ class OperationalSpaceControllerAction(ActionTerm):
     def _compute_task_frame_pose(self):
         """Computes the pose of the task frame in root frame."""
         # Update task frame pose if task frame rigidbody is provided
-        if self._task_frame_transformer is not None and self._task_frame_pose_b is not None:
+        if (
+            self._task_frame_transformer is not None
+            and self._task_frame_pose_b is not None
+        ):
             self._task_frame_transformer.update(self._sim_dt)
             # Calculate the pose of the task frame in the root frame
-            self._task_frame_pose_b[:, :3], self._task_frame_pose_b[:, 3:] = math_utils.subtract_frame_transforms(
-                self._asset.data.root_pos_w,
-                self._asset.data.root_quat_w,
-                self._task_frame_transformer.data.target_pos_w[:, 0, :],
-                self._task_frame_transformer.data.target_quat_w[:, 0, :],
+            self._task_frame_pose_b[:, :3], self._task_frame_pose_b[:, 3:] = (
+                math_utils.subtract_frame_transforms(
+                    self._asset.data.root_pos_w,
+                    self._asset.data.root_quat_w,
+                    self._task_frame_transformer.data.target_pos_w[:, 0, :],
+                    self._task_frame_transformer.data.target_quat_w[:, 0, :],
+                )
             )
 
     def _preprocess_actions(self, actions: torch.Tensor):
@@ -748,17 +892,33 @@ class OperationalSpaceControllerAction(ActionTerm):
         self._processed_actions[:] = self._raw_actions
         # Go through the command types one by one, and apply the pre-processing if needed.
         if self._pose_abs_idx is not None:
-            self._processed_actions[:, self._pose_abs_idx : self._pose_abs_idx + 3] *= self._position_scale
-            self._processed_actions[:, self._pose_abs_idx + 3 : self._pose_abs_idx + 7] *= self._orientation_scale
+            self._processed_actions[
+                :, self._pose_abs_idx : self._pose_abs_idx + 3
+            ] *= self._position_scale
+            self._processed_actions[
+                :, self._pose_abs_idx + 3 : self._pose_abs_idx + 7
+            ] *= self._orientation_scale
         if self._pose_rel_idx is not None:
-            self._processed_actions[:, self._pose_rel_idx : self._pose_rel_idx + 3] *= self._position_scale
-            self._processed_actions[:, self._pose_rel_idx + 3 : self._pose_rel_idx + 6] *= self._orientation_scale
+            self._processed_actions[
+                :, self._pose_rel_idx : self._pose_rel_idx + 3
+            ] *= self._position_scale
+            self._processed_actions[
+                :, self._pose_rel_idx + 3 : self._pose_rel_idx + 6
+            ] *= self._orientation_scale
         if self._wrench_abs_idx is not None:
-            self._processed_actions[:, self._wrench_abs_idx : self._wrench_abs_idx + 6] *= self._wrench_scale
+            self._processed_actions[
+                :, self._wrench_abs_idx : self._wrench_abs_idx + 6
+            ] *= self._wrench_scale
         if self._stiffness_idx is not None:
-            self._processed_actions[:, self._stiffness_idx : self._stiffness_idx + 6] *= self._stiffness_scale
-            self._processed_actions[:, self._stiffness_idx : self._stiffness_idx + 6] = torch.clamp(
-                self._processed_actions[:, self._stiffness_idx : self._stiffness_idx + 6],
+            self._processed_actions[
+                :, self._stiffness_idx : self._stiffness_idx + 6
+            ] *= self._stiffness_scale
+            self._processed_actions[
+                :, self._stiffness_idx : self._stiffness_idx + 6
+            ] = torch.clamp(
+                self._processed_actions[
+                    :, self._stiffness_idx : self._stiffness_idx + 6
+                ],
                 min=self.cfg.controller_cfg.motion_stiffness_limits_task[0],
                 max=self.cfg.controller_cfg.motion_stiffness_limits_task[1],
             )
@@ -766,8 +926,12 @@ class OperationalSpaceControllerAction(ActionTerm):
             self._processed_actions[
                 :, self._damping_ratio_idx : self._damping_ratio_idx + 6
             ] *= self._damping_ratio_scale
-            self._processed_actions[:, self._damping_ratio_idx : self._damping_ratio_idx + 6] = torch.clamp(
-                self._processed_actions[:, self._damping_ratio_idx : self._damping_ratio_idx + 6],
+            self._processed_actions[
+                :, self._damping_ratio_idx : self._damping_ratio_idx + 6
+            ] = torch.clamp(
+                self._processed_actions[
+                    :, self._damping_ratio_idx : self._damping_ratio_idx + 6
+                ],
                 min=self.cfg.controller_cfg.motion_damping_ratio_limits_task[0],
                 max=self.cfg.controller_cfg.motion_damping_ratio_limits_task[1],
             )

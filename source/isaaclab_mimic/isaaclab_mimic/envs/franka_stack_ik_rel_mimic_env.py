@@ -15,7 +15,12 @@ class FrankaCubeStackIKRelMimicEnv(ManagerBasedRLMimicEnv):
     Isaac Lab Mimic environment wrapper class for Franka Cube Stack IK Rel env.
     """
 
-    def get_robot_eef_pose(self, eef_name: str, env_ids: Sequence[int] | None = None) -> torch.Tensor:
+    # should terminate (used for data generation)
+    should_terminate = dict[int, bool]()
+
+    def get_robot_eef_pose(
+        self, eef_name: str, env_ids: Sequence[int] | None = None
+    ) -> torch.Tensor:
         """
         Get current robot end effector pose. Should be the same frame as used by the robot end-effector controller.
 
@@ -86,7 +91,9 @@ class FrankaCubeStackIKRelMimicEnv(ManagerBasedRLMimicEnv):
 
         return torch.cat([pose_action, gripper_action], dim=0)
 
-    def action_to_target_eef_pose(self, action: torch.Tensor) -> dict[str, torch.Tensor]:
+    def action_to_target_eef_pose(
+        self, action: torch.Tensor
+    ) -> dict[str, torch.Tensor]:
         """
         Converts action (compatible with env.step) to a target pose for the end effector controller.
         Inverse of @target_eef_pose_to_action. Usually used to infer a sequence of target controller poses
@@ -115,10 +122,16 @@ class FrankaCubeStackIKRelMimicEnv(ManagerBasedRLMimicEnv):
         delta_rotation_axis = delta_rotation / delta_rotation_angle
 
         # Handle invalid division for the case when delta_rotation_angle is close to zero
-        is_close_to_zero_angle = torch.isclose(delta_rotation_angle, torch.zeros_like(delta_rotation_angle)).squeeze(1)
-        delta_rotation_axis[is_close_to_zero_angle] = torch.zeros_like(delta_rotation_axis)[is_close_to_zero_angle]
+        is_close_to_zero_angle = torch.isclose(
+            delta_rotation_angle, torch.zeros_like(delta_rotation_angle)
+        ).squeeze(1)
+        delta_rotation_axis[is_close_to_zero_angle] = torch.zeros_like(
+            delta_rotation_axis
+        )[is_close_to_zero_angle]
 
-        delta_quat = PoseUtils.quat_from_angle_axis(delta_rotation_angle.squeeze(1), delta_rotation_axis).squeeze(0)
+        delta_quat = PoseUtils.quat_from_angle_axis(
+            delta_rotation_angle.squeeze(1), delta_rotation_axis
+        ).squeeze(0)
         delta_rot_mat = PoseUtils.matrix_from_quat(delta_quat)
         target_rot = torch.matmul(delta_rot_mat, curr_rot)
 
@@ -126,7 +139,9 @@ class FrankaCubeStackIKRelMimicEnv(ManagerBasedRLMimicEnv):
 
         return {eef_name: target_poses}
 
-    def actions_to_gripper_actions(self, actions: torch.Tensor) -> dict[str, torch.Tensor]:
+    def actions_to_gripper_actions(
+        self, actions: torch.Tensor
+    ) -> dict[str, torch.Tensor]:
         """
         Extracts the gripper actuation part from a sequence of env actions (compatible with env.step).
 
@@ -139,7 +154,9 @@ class FrankaCubeStackIKRelMimicEnv(ManagerBasedRLMimicEnv):
         # last dimension is gripper action
         return {list(self.cfg.subtask_configs.keys())[0]: actions[:, -1:]}
 
-    def get_subtask_term_signals(self, env_ids: Sequence[int] | None = None) -> dict[str, torch.Tensor]:
+    def get_subtask_term_signals(
+        self, env_ids: Sequence[int] | None = None
+    ) -> dict[str, torch.Tensor]:
         """
         Gets a dictionary of termination signal flags for each subtask in a task. The flag is 1
         when the subtask has been completed and 0 otherwise. The implementation of this method is
@@ -164,7 +181,9 @@ class FrankaCubeStackIKRelMimicEnv(ManagerBasedRLMimicEnv):
         # final subtask is placing cubeC on cubeA (motion relative to cubeA) - but final subtask signal is not needed
         return signals
 
-    def get_expected_attached_object(self, eef_name: str, subtask_index: int, env_cfg) -> str | None:
+    def get_expected_attached_object(
+        self, eef_name: str, subtask_index: int, env_cfg
+    ) -> str | None:
         """
         (SkillGen) Return the expected attached object for the given EEF/subtask.
 

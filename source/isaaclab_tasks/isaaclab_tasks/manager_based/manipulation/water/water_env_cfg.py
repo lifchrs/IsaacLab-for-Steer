@@ -6,10 +6,11 @@
 import os
 from dataclasses import MISSING
 from math import sqrt
+from typing import Any
 import isaaclab.sim as sim_utils
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg
 from isaaclab.assets import RigidObjectCfg
-from isaaclab.sim.schemas.schemas_cfg import RigidBodyPropertiesCfg
+from isaaclab.sim.schemas.schemas_cfg import RigidBodyPropertiesCfg, MassPropertiesCfg
 from isaaclab.devices.openxr import XrCfg
 from isaaclab.envs import ManagerBasedRLEnvCfg
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
@@ -20,7 +21,6 @@ from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.sensors.frame_transformer.frame_transformer_cfg import FrameTransformerCfg
 from isaaclab.sim.spawners.from_files.from_files_cfg import GroundPlaneCfg, UsdFileCfg
 from isaaclab.utils import configclass
-from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 
 from . import mdp
 
@@ -47,6 +47,12 @@ rigid_body_properties = RigidBodyPropertiesCfg(
     disable_gravity=False,
 )
 
+mass_properties = MassPropertiesCfg(
+    mass=0.001,  # Mass in kg
+    # Alternative: use density instead of mass
+    # density=1000.0,  # Density in kg/m³
+)
+
 
 ##
 # Scene definition
@@ -55,23 +61,9 @@ rigid_body_properties = RigidBodyPropertiesCfg(
 class WaterSceneCfg(InteractiveSceneCfg):
     """Configuration for the water plant scene."""
 
-    # # Background
-    # background = AssetBaseCfg(
-    #     prim_path="/World/Background",
-    #     init_state=ASSET_INIT_STATE,
-    #     spawn=UsdFileCfg(
-    #         usd_path=os.path.abspath(
-    #             os.path.join(
-    #                 ASSET_DIR,
-    #                 "background.usd",
-    #             )
-    #         )
-    #     ),
-    # )
-
     # table
     table = AssetBaseCfg(
-        prim_path="/World/table",
+        prim_path="{ENV_REGEX_NS}/table",
         init_state=ASSET_INIT_STATE,
         spawn=UsdFileCfg(
             usd_path=os.path.abspath(
@@ -81,34 +73,37 @@ class WaterSceneCfg(InteractiveSceneCfg):
     )
 
     cup = RigidObjectCfg(
-        prim_path="/World/cup",
+        prim_path="{ENV_REGEX_NS}/cup",
         init_state=ASSET_INIT_STATE,
         spawn=UsdFileCfg(
             usd_path=os.path.abspath(os.path.join(ASSET_DIR, "cup.usd")),
             scale=(1.0, 1.0, 1.0),
             rigid_props=rigid_body_properties,
+            mass_props=mass_properties,
             semantic_tags=[("class", "cup")],
         ),
     )
 
     plant = RigidObjectCfg(
-        prim_path="/World/plant",
+        prim_path="{ENV_REGEX_NS}/plant",
         init_state=ASSET_INIT_STATE,
         spawn=UsdFileCfg(
             usd_path=os.path.abspath(os.path.join(ASSET_DIR, "plant.usd")),
             scale=(1.0, 1.0, 1.0),
             rigid_props=rigid_body_properties,
+            mass_props=mass_properties,
             semantic_tags=[("class", "plant")],
         ),
     )
 
     bowl = RigidObjectCfg(
-        prim_path="/World/bowl",
+        prim_path="{ENV_REGEX_NS}/bowl",
         init_state=ASSET_INIT_STATE,
         spawn=UsdFileCfg(
             usd_path=os.path.abspath(os.path.join(ASSET_DIR, "bowl.usd")),
             scale=(1.0, 1.0, 1.0),
             rigid_props=rigid_body_properties,
+            mass_props=mass_properties,
             semantic_tags=[("class", "bowl")],
         ),
     )
@@ -141,33 +136,9 @@ class ObservationsCfg:
         """Observations for policy group with state values."""
 
         actions = ObsTerm(func=mdp.last_action)
+        joint_action = ObsTerm(func=mdp.last_droid_action)
         joint_pos = ObsTerm(func=mdp.joint_pos)
         joint_vel = ObsTerm(func=mdp.joint_vel)
-        # object = ObsTerm(func=mdp.object_obs)
-        # bird_position = ObsTerm(
-        #     func=mdp.object_position_in_world_frame,
-        #     params={"object_cfg": SceneEntityCfg("bird")},
-        # )
-        # bird_orientation = ObsTerm(
-        #     func=mdp.object_orientation_in_world_frame,
-        #     params={"object_cfg": SceneEntityCfg("bird")},
-        # )
-        # pig_position = ObsTerm(
-        #     func=mdp.object_position_in_world_frame,
-        #     params={"object_cfg": SceneEntityCfg("pig")},
-        # )
-        # pig_orientation = ObsTerm(
-        #     func=mdp.object_orientation_in_world_frame,
-        #     params={"object_cfg": SceneEntityCfg("pig")},
-        # )
-        # vase_position = ObsTerm(
-        #     func=mdp.object_position_in_world_frame,
-        #     params={"object_cfg": SceneEntityCfg("vase")},
-        # )
-        # vase_orientation = ObsTerm(
-        #     func=mdp.object_orientation_in_world_frame,
-        #     params={"object_cfg": SceneEntityCfg("vase")},
-        # )
         eef_pos = ObsTerm(func=mdp.ee_frame_pos)
         eef_quat = ObsTerm(func=mdp.ee_frame_quat)
         gripper_pos = ObsTerm(func=mdp.gripper_pos)
@@ -194,6 +165,7 @@ class ObservationsCfg:
                 "robot_cfg": SceneEntityCfg("robot"),
                 "ee_frame_cfg": SceneEntityCfg("ee_frame"),
                 "object_cfg": SceneEntityCfg("cup"),
+                "diff_threshold": 0.1,
             },
         )
 
@@ -220,7 +192,7 @@ class ObservationsCfg:
 class TerminationsCfg:
     """Termination terms for the MDP."""
 
-    time_out = DoneTerm(func=mdp.time_out, time_out=True)
+    # time_out = DoneTerm(func=mdp.time_out, time_out=True)
 
     cup_dropping = DoneTerm(
         func=mdp.root_height_below_minimum,
@@ -230,11 +202,47 @@ class TerminationsCfg:
         },
     )
 
-    plant_dropping = DoneTerm(
-        func=mdp.root_height_below_minimum,
+    # bowl_dropping = DoneTerm(
+    #     func=mdp.root_height_below_minimum,
+    #     params={
+    #         "minimum_height": ASSET_INIT_POS[2] - 0.1,
+    #         "asset_cfg": SceneEntityCfg("bowl"),
+    #     },
+    # )
+
+    # plant_dropping = DoneTerm(
+    #     func=mdp.root_height_below_minimum,
+    #     params={
+    #         "minimum_height": ASSET_INIT_POS[2] - 0.1,
+    #         "asset_cfg": SceneEntityCfg("plant"),
+    #     },
+    # )
+
+    # bowl_falling = DoneTerm(
+    #     func=mdp.root_rotation_exceeds_threshold,
+    #     params={"asset_cfg": SceneEntityCfg("bowl"), "threshold": 0.2},
+    # )
+
+    # plant_falling = DoneTerm(
+    #     func=mdp.root_rotation_exceeds_threshold,
+    #     params={"asset_cfg": SceneEntityCfg("plant"), "threshold": 0.2},
+    # )
+
+    bowl_moving = DoneTerm(
+        func=mdp.root_velocity_exceeds_threshold,
         params={
-            "minimum_height": ASSET_INIT_POS[2] - 0.1,
+            "asset_cfg": SceneEntityCfg("bowl"),
+            "lin_vel_threshold": 0.05,
+            "ang_vel_threshold": 0.1,
+        },
+    )
+
+    plant_moving = DoneTerm(
+        func=mdp.root_velocity_exceeds_threshold,
+        params={
             "asset_cfg": SceneEntityCfg("plant"),
+            "lin_vel_threshold": 0.05,
+            "ang_vel_threshold": 0.1,
         },
     )
 

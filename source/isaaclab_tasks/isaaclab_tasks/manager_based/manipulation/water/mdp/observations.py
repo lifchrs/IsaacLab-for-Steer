@@ -391,6 +391,7 @@ def object_grasped(
     object_pos = object.data.root_pos_w
     end_effector_pos = ee_frame.data.target_pos_w[:, 0, :]
     pose_diff = torch.linalg.vector_norm(object_pos - end_effector_pos, dim=1)
+    # print(f"pose_diff: {pose_diff}")
 
     if hasattr(env.scene, "surface_grippers") and len(env.scene.surface_grippers) > 0:
         surface_gripper = env.scene.surface_grippers["surface_gripper"]
@@ -407,6 +408,23 @@ def object_grasped(
                 len(gripper_joint_ids) == 2
             ), "Observations only support parallel gripper for now"
 
+            gripper_1 = torch.abs(
+                robot.data.joint_pos[:, gripper_joint_ids[0]]
+                - torch.tensor(env.cfg.gripper_open_val, dtype=torch.float32).to(
+                    env.device
+                )
+            )
+            gripper_2 = torch.abs(
+                robot.data.joint_pos[:, gripper_joint_ids[1]]
+                - torch.tensor(env.cfg.gripper_open_val, dtype=torch.float32).to(
+                    env.device
+                )
+            )
+
+            # print(f"gripper_1: {gripper_1}")
+            # print(f"gripper_2: {gripper_2}")
+            # print(f"env.cfg.gripper_threshold: {env.cfg.gripper_threshold}")
+
             grasped = torch.logical_and(
                 pose_diff < diff_threshold,
                 torch.abs(
@@ -417,6 +435,7 @@ def object_grasped(
                 )
                 > env.cfg.gripper_threshold,
             )
+            # print(f"grasped: {grasped}")
             grasped = torch.logical_and(
                 grasped,
                 torch.abs(
@@ -427,6 +446,7 @@ def object_grasped(
                 )
                 > env.cfg.gripper_threshold,
             )
+            # print(f"grasped: {grasped}")
 
     return grasped
 
@@ -436,7 +456,7 @@ def object_moved(
     object_cfg: SceneEntityCfg,
     target_cfg: SceneEntityCfg,
     target_height: float = 0.2,
-    xy_threshold: float = 0.05,
+    xy_threshold: float = 0.15,
 ) -> torch.Tensor:
     """Check if an object is moved to the target position."""
 

@@ -19,11 +19,12 @@ from isaaclab_tasks.manager_based.manipulation.stack.mdp import franka_stack_eve
 from isaaclab_tasks.manager_based.manipulation.stack.stack_env_cfg import (
     DroidStackEnvCfg,
 )
+import numpy as np
 
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets.robots.franka import DROID_CFG  # isort: skip
+from isaaclab_assets.robots.droid import DROID_CFG  # isort: skip
 from isaaclab.markers.config import FRAME_MARKER_CFG  # isort: skip
 
 
@@ -36,13 +37,12 @@ class EventCfg:
         mode="reset",
         params={
             "default_pose": [
-                0.0444,
-                -0.1894,
-                -0.1107,
-                -2.5148,
-                0.0044,
-                2.3775,
-                0.6952,
+                0.0,
+                -1 / 5 * np.pi,
+                0.0,
+                -4 / 5 * np.pi,
+                0.0,
+                3 / 5 * np.pi,
                 0.0,
                 0.0,
                 0.0,
@@ -50,7 +50,8 @@ class EventCfg:
                 0.0,
                 0.0,
                 0.0,
-                0.0,
+                # 0.0,
+                # 0.0,
             ],
             # "default_pose": [0.0444, -0.1894, -0.1107, -2.5148, 0.0044, 2.3775, 0.6952],
         },
@@ -113,39 +114,81 @@ class DroidCubeStackSimEnvCfg(DroidStackEnvCfg):
             use_default_offset=False,
         )
 
-        self.actions.gripper_action = mdp.BinaryJointPositionActionCfg(
+        self.actions.gripper_action = mdp.BinaryZeroOneJointPositionActionCfg(
             asset_name="robot",
-            joint_names=[
-                "finger_joint",
-                "right_outer_knuckle_joint",
-                "right_outer_finger_joint",
-                "right_inner_finger_joint",
-                "right_inner_finger_knuckle_joint",
-                "left_outer_finger_joint",
-                "left_inner_finger_knuckle_joint",
-                "left_inner_finger_joint",
-            ],
-            open_command_expr={
-                "finger_joint": 0.0,
-                "right_outer_knuckle_joint": 0.0,
-                "right_outer_finger_joint": 0.0,
-                "right_inner_finger_joint": 0.0,
-                "right_inner_finger_knuckle_joint": 0.0,
-                "left_outer_finger_joint": 0.0,
-                "left_inner_finger_knuckle_joint": 0.0,
-                "left_inner_finger_joint": 0.0,
-            },
-            close_command_expr={
-                "finger_joint": 0.785398163,
-                "right_outer_knuckle_joint": 0.785398163,
-                "right_outer_finger_joint": 0.0,
-                "right_inner_finger_joint": 0.785398163,
-                "right_inner_finger_knuckle_joint": -0.785398163,
-                "left_outer_finger_joint": 0.0,
-                "left_inner_finger_knuckle_joint": -0.785398163,
-                "left_inner_finger_joint": -0.785398163,
-            },
+            joint_names=["finger_joint"],
+            open_command_expr={"finger_joint": 0.0},
+            close_command_expr={"finger_joint": np.pi / 4},
         )
+
+        # self.actions.gripper_action = mdp.BinaryJointPositionActionCfg(
+        #     asset_name="robot",
+        #     joint_names=[
+        #         "finger_joint",
+        #         "right_outer_knuckle_joint",
+        #         "right_outer_finger_joint",
+        #         "right_inner_finger_joint",
+        #         "right_inner_finger_knuckle_joint",
+        #         "left_outer_finger_joint",
+        #         "left_inner_finger_knuckle_joint",
+        #         "left_inner_finger_joint",
+        #     ],
+        #     open_command_expr={
+        #         "finger_joint": 0.0,
+        #         "right_outer_knuckle_joint": 0.0,
+        #         "right_outer_finger_joint": 0.0,
+        #         "right_inner_finger_joint": 0.0,
+        #         "right_inner_finger_knuckle_joint": 0.0,
+        #         "left_outer_finger_joint": 0.0,
+        #         "left_inner_finger_knuckle_joint": 0.0,
+        #         "left_inner_finger_joint": 0.0,
+        #     },
+        #     close_command_expr={
+        #         "finger_joint": 0.785398163,
+        #         "right_outer_knuckle_joint": 0.785398163,
+        #         "right_outer_finger_joint": 0.0,
+        #         "right_inner_finger_joint": 0.785398163,
+        #         "right_inner_finger_knuckle_joint": -0.785398163,
+        #         "left_outer_finger_joint": 0.0,
+        #         "left_inner_finger_knuckle_joint": -0.785398163,
+        #         "left_inner_finger_joint": -0.785398163,
+        #     },
+        # )
+
+        # self.actions.gripper_action = mdp.ProgressiveJointPositionActionCfg(
+        #     asset_name="robot",
+        #     joint_names=[
+        #         "finger_joint",
+        #         "right_outer_knuckle_joint",
+        #         "right_outer_finger_joint",
+        #         "right_inner_finger_joint",
+        #         "right_inner_finger_knuckle_joint",
+        #         "left_outer_finger_joint",
+        #         "left_inner_finger_knuckle_joint",
+        #         "left_inner_finger_joint",
+        #     ],
+        #     open_command_expr={
+        #         "finger_joint": 0.0,
+        #         "right_outer_knuckle_joint": 0.0,
+        #         "right_outer_finger_joint": 0.0,
+        #         "right_inner_finger_joint": 0.0,
+        #         "right_inner_finger_knuckle_joint": 0.0,
+        #         "left_outer_finger_joint": 0.0,
+        #         "left_inner_finger_knuckle_joint": 0.0,
+        #         "left_inner_finger_joint": 0.0,
+        #     },
+        #     close_command_expr={
+        #         "finger_joint": 0.785398163,
+        #         "right_outer_knuckle_joint": 0.785398163,
+        #         "right_outer_finger_joint": 0.0,
+        #         "right_inner_finger_joint": 0.785398163,
+        #         "right_inner_finger_knuckle_joint": -0.785398163,
+        #         "left_outer_finger_joint": 0.0,
+        #         "left_inner_finger_knuckle_joint": -0.785398163,
+        #         "left_inner_finger_joint": -0.785398163,
+        #     },
+        #     total_progress=8,
+        # )
 
         # utilities for gripper status check
         self.gripper_joint_names = ["right_outer_knuckle_joint", "finger_joint"]
@@ -164,7 +207,7 @@ class DroidCubeStackSimEnvCfg(DroidStackEnvCfg):
 
         # Mass properties for cubes (you can change these values)
         cube_mass_properties = MassPropertiesCfg(
-            mass=0.8,  # Mass in kg - change this value to modify cube mass
+            mass=0.001,  # Mass in kg - change this value to modify cube mass
             # Alternative: use density instead of mass
             # density=1000.0,  # Density in kg/m³
         )
@@ -220,7 +263,8 @@ class DroidCubeStackSimEnvCfg(DroidStackEnvCfg):
             visualizer_cfg=marker_cfg,
             target_frames=[
                 FrameTransformerCfg.FrameCfg(
-                    prim_path="{ENV_REGEX_NS}/Robot/base_link",
+                    # prim_path="{ENV_REGEX_NS}/Robot/base_link",
+                    prim_path="{ENV_REGEX_NS}/Robot/Gripper/Robotiq_2F_85/base_link",
                     name="end_effector",
                     offset=OffsetCfg(
                         pos=(0.1534, 0.0, 0.0),
@@ -228,14 +272,16 @@ class DroidCubeStackSimEnvCfg(DroidStackEnvCfg):
                     ),
                 ),
                 FrameTransformerCfg.FrameCfg(
-                    prim_path="{ENV_REGEX_NS}/Robot/right_inner_finger",
+                    # prim_path="{ENV_REGEX_NS}/Robot/right_inner_finger",
+                    prim_path="{ENV_REGEX_NS}/Robot/Gripper/Robotiq_2F_85/right_inner_finger",
                     name="tool_rightfinger",
                     offset=OffsetCfg(
                         pos=(0.0, 0.0, 0.046),
                     ),
                 ),
                 FrameTransformerCfg.FrameCfg(
-                    prim_path="{ENV_REGEX_NS}/Robot/left_inner_finger",
+                    # prim_path="{ENV_REGEX_NS}/Robot/left_inner_finger",
+                    prim_path="{ENV_REGEX_NS}/Robot/Gripper/Robotiq_2F_85/left_inner_finger",
                     name="tool_leftfinger",
                     offset=OffsetCfg(
                         pos=(0.0, 0.0, 0.046),

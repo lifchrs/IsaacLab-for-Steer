@@ -39,8 +39,15 @@ Root state.
 """
 
 
-@generic_io_descriptor(units="m", axes=["Z"], observation_type="RootState", on_inspect=[record_shape, record_dtype])
-def base_pos_z(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+@generic_io_descriptor(
+    units="m",
+    axes=["Z"],
+    observation_type="RootState",
+    on_inspect=[record_shape, record_dtype],
+)
+def base_pos_z(
+    env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
     """Root height in the simulation world frame."""
     # extract the used quantities (to enable type-hinting)
     asset: Articulation = env.scene[asset_cfg.name]
@@ -48,9 +55,14 @@ def base_pos_z(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg(
 
 
 @generic_io_descriptor(
-    units="m/s", axes=["X", "Y", "Z"], observation_type="RootState", on_inspect=[record_shape, record_dtype]
+    units="m/s",
+    axes=["X", "Y", "Z"],
+    observation_type="RootState",
+    on_inspect=[record_shape, record_dtype],
 )
-def base_lin_vel(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+def base_lin_vel(
+    env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
     """Root linear velocity in the asset's root frame."""
     # extract the used quantities (to enable type-hinting)
     asset: RigidObject = env.scene[asset_cfg.name]
@@ -58,9 +70,14 @@ def base_lin_vel(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCf
 
 
 @generic_io_descriptor(
-    units="rad/s", axes=["X", "Y", "Z"], observation_type="RootState", on_inspect=[record_shape, record_dtype]
+    units="rad/s",
+    axes=["X", "Y", "Z"],
+    observation_type="RootState",
+    on_inspect=[record_shape, record_dtype],
 )
-def base_ang_vel(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+def base_ang_vel(
+    env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
     """Root angular velocity in the asset's root frame."""
     # extract the used quantities (to enable type-hinting)
     asset: RigidObject = env.scene[asset_cfg.name]
@@ -68,9 +85,14 @@ def base_ang_vel(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCf
 
 
 @generic_io_descriptor(
-    units="m/s^2", axes=["X", "Y", "Z"], observation_type="RootState", on_inspect=[record_shape, record_dtype]
+    units="m/s^2",
+    axes=["X", "Y", "Z"],
+    observation_type="RootState",
+    on_inspect=[record_shape, record_dtype],
 )
-def projected_gravity(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+def projected_gravity(
+    env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
     """Gravity projection on the asset's root frame."""
     # extract the used quantities (to enable type-hinting)
     asset: RigidObject = env.scene[asset_cfg.name]
@@ -78,9 +100,14 @@ def projected_gravity(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEnt
 
 
 @generic_io_descriptor(
-    units="m", axes=["X", "Y", "Z"], observation_type="RootState", on_inspect=[record_shape, record_dtype]
+    units="m",
+    axes=["X", "Y", "Z"],
+    observation_type="RootState",
+    on_inspect=[record_shape, record_dtype],
 )
-def root_pos_w(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+def root_pos_w(
+    env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
     """Asset root position in the environment frame."""
     # extract the used quantities (to enable type-hinting)
     asset: RigidObject = env.scene[asset_cfg.name]
@@ -88,10 +115,15 @@ def root_pos_w(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg(
 
 
 @generic_io_descriptor(
-    units="unit", axes=["W", "X", "Y", "Z"], observation_type="RootState", on_inspect=[record_shape, record_dtype]
+    units="unit",
+    axes=["W", "X", "Y", "Z"],
+    observation_type="RootState",
+    on_inspect=[record_shape, record_dtype],
 )
 def root_quat_w(
-    env: ManagerBasedEnv, make_quat_unique: bool = False, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+    env: ManagerBasedEnv,
+    make_quat_unique: bool = False,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ) -> torch.Tensor:
     """Asset root orientation (w, x, y, z) in the environment frame.
 
@@ -108,9 +140,14 @@ def root_quat_w(
 
 
 @generic_io_descriptor(
-    units="m/s", axes=["X", "Y", "Z"], observation_type="RootState", on_inspect=[record_shape, record_dtype]
+    units="m/s",
+    axes=["X", "Y", "Z"],
+    observation_type="RootState",
+    on_inspect=[record_shape, record_dtype],
 )
-def root_lin_vel_w(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+def root_lin_vel_w(
+    env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
     """Asset root linear velocity in the environment frame."""
     # extract the used quantities (to enable type-hinting)
     asset: RigidObject = env.scene[asset_cfg.name]
@@ -118,9 +155,14 @@ def root_lin_vel_w(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntity
 
 
 @generic_io_descriptor(
-    units="rad/s", axes=["X", "Y", "Z"], observation_type="RootState", on_inspect=[record_shape, record_dtype]
+    units="rad/s",
+    axes=["X", "Y", "Z"],
+    observation_type="RootState",
+    on_inspect=[record_shape, record_dtype],
 )
-def root_ang_vel_w(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+def root_ang_vel_w(
+    env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
     """Asset root angular velocity in the environment frame."""
     # extract the used quantities (to enable type-hinting)
     asset: RigidObject = env.scene[asset_cfg.name]
@@ -132,7 +174,10 @@ Body state
 """
 
 
-@generic_io_descriptor(observation_type="BodyState", on_inspect=[record_shape, record_dtype, record_body_names])
+@generic_io_descriptor(
+    observation_type="BodyState",
+    on_inspect=[record_shape, record_dtype, record_body_names],
+)
 def body_pose_w(
     env: ManagerBasedEnv,
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
@@ -158,7 +203,10 @@ def body_pose_w(
     return pose.reshape(env.num_envs, -1)
 
 
-@generic_io_descriptor(observation_type="BodyState", on_inspect=[record_shape, record_dtype, record_body_names])
+@generic_io_descriptor(
+    observation_type="BodyState",
+    on_inspect=[record_shape, record_dtype, record_body_names],
+)
 def body_projected_gravity_b(
     env: ManagerBasedEnv,
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
@@ -189,9 +237,13 @@ Joint state.
 
 
 @generic_io_descriptor(
-    observation_type="JointState", on_inspect=[record_joint_names, record_dtype, record_shape], units="rad"
+    observation_type="JointState",
+    on_inspect=[record_joint_names, record_dtype, record_shape],
+    units="rad",
 )
-def joint_pos(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+def joint_pos(
+    env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
     """The joint positions of the asset.
 
     Note: Only the joints configured in :attr:`asset_cfg.joint_ids` will have their positions returned.
@@ -203,20 +255,33 @@ def joint_pos(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("
 
 @generic_io_descriptor(
     observation_type="JointState",
-    on_inspect=[record_joint_names, record_dtype, record_shape, record_joint_pos_offsets],
+    on_inspect=[
+        record_joint_names,
+        record_dtype,
+        record_shape,
+        record_joint_pos_offsets,
+    ],
     units="rad",
 )
-def joint_pos_rel(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+def joint_pos_rel(
+    env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
     """The joint positions of the asset w.r.t. the default joint positions.
 
     Note: Only the joints configured in :attr:`asset_cfg.joint_ids` will have their positions returned.
     """
     # extract the used quantities (to enable type-hinting)
     asset: Articulation = env.scene[asset_cfg.name]
-    return asset.data.joint_pos[:, asset_cfg.joint_ids] - asset.data.default_joint_pos[:, asset_cfg.joint_ids]
+    return (
+        asset.data.joint_pos[:, asset_cfg.joint_ids]
+        - asset.data.default_joint_pos[:, asset_cfg.joint_ids]
+    )
 
 
-@generic_io_descriptor(observation_type="JointState", on_inspect=[record_joint_names, record_dtype, record_shape])
+@generic_io_descriptor(
+    observation_type="JointState",
+    on_inspect=[record_joint_names, record_dtype, record_shape],
+)
 def joint_pos_limit_normalized(
     env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
@@ -234,9 +299,13 @@ def joint_pos_limit_normalized(
 
 
 @generic_io_descriptor(
-    observation_type="JointState", on_inspect=[record_joint_names, record_dtype, record_shape], units="rad/s"
+    observation_type="JointState",
+    on_inspect=[record_joint_names, record_dtype, record_shape],
+    units="rad/s",
 )
-def joint_vel(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")):
+def joint_vel(
+    env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+):
     """The joint velocities of the asset.
 
     Note: Only the joints configured in :attr:`asset_cfg.joint_ids` will have their velocities returned.
@@ -248,23 +317,37 @@ def joint_vel(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("
 
 @generic_io_descriptor(
     observation_type="JointState",
-    on_inspect=[record_joint_names, record_dtype, record_shape, record_joint_vel_offsets],
+    on_inspect=[
+        record_joint_names,
+        record_dtype,
+        record_shape,
+        record_joint_vel_offsets,
+    ],
     units="rad/s",
 )
-def joint_vel_rel(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")):
+def joint_vel_rel(
+    env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+):
     """The joint velocities of the asset w.r.t. the default joint velocities.
 
     Note: Only the joints configured in :attr:`asset_cfg.joint_ids` will have their velocities returned.
     """
     # extract the used quantities (to enable type-hinting)
     asset: Articulation = env.scene[asset_cfg.name]
-    return asset.data.joint_vel[:, asset_cfg.joint_ids] - asset.data.default_joint_vel[:, asset_cfg.joint_ids]
+    return (
+        asset.data.joint_vel[:, asset_cfg.joint_ids]
+        - asset.data.default_joint_vel[:, asset_cfg.joint_ids]
+    )
 
 
 @generic_io_descriptor(
-    observation_type="JointState", on_inspect=[record_joint_names, record_dtype, record_shape], units="N.m"
+    observation_type="JointState",
+    on_inspect=[record_joint_names, record_dtype, record_shape],
+    units="N.m",
 )
-def joint_effort(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+def joint_effort(
+    env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
     """The joint applied effort of the robot.
 
     NOTE: Only the joints configured in :attr:`asset_cfg.joint_ids` will have their effort returned.
@@ -286,7 +369,9 @@ Sensors.
 """
 
 
-def height_scan(env: ManagerBasedEnv, sensor_cfg: SceneEntityCfg, offset: float = 0.5) -> torch.Tensor:
+def height_scan(
+    env: ManagerBasedEnv, sensor_cfg: SceneEntityCfg, offset: float = 0.5
+) -> torch.Tensor:
     """Height scan from the given sensor w.r.t. the sensor's frame.
 
     The provided offset (Defaults to 0.5) is subtracted from the returned values.
@@ -294,10 +379,14 @@ def height_scan(env: ManagerBasedEnv, sensor_cfg: SceneEntityCfg, offset: float 
     # extract the used quantities (to enable type-hinting)
     sensor: RayCaster = env.scene.sensors[sensor_cfg.name]
     # height scan: height = sensor_height - hit_point_z - offset
-    return sensor.data.pos_w[:, 2].unsqueeze(1) - sensor.data.ray_hits_w[..., 2] - offset
+    return (
+        sensor.data.pos_w[:, 2].unsqueeze(1) - sensor.data.ray_hits_w[..., 2] - offset
+    )
 
 
-def body_incoming_wrench(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
+def body_incoming_wrench(
+    env: ManagerBasedEnv, asset_cfg: SceneEntityCfg
+) -> torch.Tensor:
     """Incoming spatial wrench on bodies of an articulation in the simulation world frame.
 
     This is the 6-D wrench (force and torque) applied to the body link by the incoming joint force.
@@ -305,11 +394,15 @@ def body_incoming_wrench(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg) -> tor
     # extract the used quantities (to enable type-hinting)
     asset: Articulation = env.scene[asset_cfg.name]
     # obtain the link incoming forces in world frame
-    body_incoming_joint_wrench_b = asset.data.body_incoming_joint_wrench_b[:, asset_cfg.body_ids]
+    body_incoming_joint_wrench_b = asset.data.body_incoming_joint_wrench_b[
+        :, asset_cfg.body_ids
+    ]
     return body_incoming_joint_wrench_b.view(env.num_envs, -1)
 
 
-def imu_orientation(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("imu")) -> torch.Tensor:
+def imu_orientation(
+    env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("imu")
+) -> torch.Tensor:
     """Imu sensor orientation in the simulation world frame.
 
     Args:
@@ -325,7 +418,9 @@ def imu_orientation(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntit
     return asset.data.quat_w
 
 
-def imu_projected_gravity(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("imu")) -> torch.Tensor:
+def imu_projected_gravity(
+    env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("imu")
+) -> torch.Tensor:
     """Imu sensor orientation w.r.t the env.scene.origin.
 
     Args:
@@ -340,7 +435,9 @@ def imu_projected_gravity(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = Scen
     return asset.data.projected_gravity_b
 
 
-def imu_ang_vel(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("imu")) -> torch.Tensor:
+def imu_ang_vel(
+    env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("imu")
+) -> torch.Tensor:
     """Imu sensor angular velocity w.r.t. environment origin expressed in the sensor frame.
 
     Args:
@@ -356,7 +453,9 @@ def imu_ang_vel(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg
     return asset.data.ang_vel_b
 
 
-def imu_lin_acc(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("imu")) -> torch.Tensor:
+def imu_lin_acc(
+    env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("imu")
+) -> torch.Tensor:
     """Imu sensor linear acceleration w.r.t. the environment origin expressed in sensor frame.
 
     Args:
@@ -405,7 +504,9 @@ def image(
 
     # depth image conversion
     if (data_type == "distance_to_camera") and convert_perspective_to_orthogonal:
-        images = math_utils.orthogonalize_perspective_depth(images, sensor.data.intrinsic_matrices)
+        images = math_utils.orthogonalize_perspective_depth(
+            images, sensor.data.intrinsic_matrices
+        )
 
     # rgb/depth/normals image normalization
     if normalize:
@@ -496,9 +597,13 @@ class image_features(ManagerTermBase):
             )
         if self.model_zoo_cfg is None:
             if self.model_name in default_theia_models:
-                model_config = self._prepare_theia_transformer_model(self.model_name, self.model_device)
+                model_config = self._prepare_theia_transformer_model(
+                    self.model_name, self.model_device
+                )
             elif self.model_name in default_resnet_models:
-                model_config = self._prepare_resnet_model(self.model_name, self.model_device)
+                model_config = self._prepare_resnet_model(
+                    self.model_name, self.model_device
+                )
             else:
                 raise ValueError(
                     f"Model name '{self.model_name}' not found in the default model zoo configuration."
@@ -541,7 +646,9 @@ class image_features(ManagerTermBase):
         # store the device of the image
         image_device = image_data.device
         # forward the images through the model
-        features = self._inference_fn(self._model, image_data, **(inference_kwargs or {}))
+        features = self._inference_fn(
+            self._model, image_data, **(inference_kwargs or {})
+        )
 
         # move the features back to the image device
         return features.detach().to(image_device)
@@ -550,7 +657,9 @@ class image_features(ManagerTermBase):
     Helper functions.
     """
 
-    def _prepare_theia_transformer_model(self, model_name: str, model_device: str) -> dict:
+    def _prepare_theia_transformer_model(
+        self, model_name: str, model_device: str
+    ) -> dict:
         """Prepare the Theia transformer model for inference.
 
         Args:
@@ -564,7 +673,9 @@ class image_features(ManagerTermBase):
 
         def _load_model() -> torch.nn.Module:
             """Load the Theia transformer model."""
-            model = AutoModel.from_pretrained(f"theaiinstitute/{model_name}", trust_remote_code=True).eval()
+            model = AutoModel.from_pretrained(
+                f"theaiinstitute/{model_name}", trust_remote_code=True
+            ).eval()
             return model.to(model_device)
 
         def _inference(model, images: torch.Tensor) -> torch.Tensor:
@@ -582,12 +693,18 @@ class image_features(ManagerTermBase):
             # permute the image to (num_envs, channel, height, width)
             image_proc = image_proc.permute(0, 3, 1, 2).float() / 255.0
             # Normalize the image
-            mean = torch.tensor([0.485, 0.456, 0.406], device=model_device).view(1, 3, 1, 1)
-            std = torch.tensor([0.229, 0.224, 0.225], device=model_device).view(1, 3, 1, 1)
+            mean = torch.tensor([0.485, 0.456, 0.406], device=model_device).view(
+                1, 3, 1, 1
+            )
+            std = torch.tensor([0.229, 0.224, 0.225], device=model_device).view(
+                1, 3, 1, 1
+            )
             image_proc = (image_proc - mean) / std
 
             # Taken from Transformers; inference converted to be GPU only
-            features = model.backbone.model(pixel_values=image_proc, interpolate_pos_encoding=True)
+            features = model.backbone.model(
+                pixel_values=image_proc, interpolate_pos_encoding=True
+            )
             return features.last_hidden_state[:, 1:]
 
         # return the model, preprocess and inference functions
@@ -616,7 +733,9 @@ class image_features(ManagerTermBase):
             }
 
             # load the model
-            model = getattr(models, model_name)(weights=resnet_weights[model_name]).eval()
+            model = getattr(models, model_name)(
+                weights=resnet_weights[model_name]
+            ).eval()
             return model.to(model_device)
 
         def _inference(model, images: torch.Tensor) -> torch.Tensor:
@@ -634,8 +753,12 @@ class image_features(ManagerTermBase):
             # permute the image to (num_envs, channel, height, width)
             image_proc = image_proc.permute(0, 3, 1, 2).float() / 255.0
             # normalize the image
-            mean = torch.tensor([0.485, 0.456, 0.406], device=model_device).view(1, 3, 1, 1)
-            std = torch.tensor([0.229, 0.224, 0.225], device=model_device).view(1, 3, 1, 1)
+            mean = torch.tensor([0.485, 0.456, 0.406], device=model_device).view(
+                1, 3, 1, 1
+            )
+            std = torch.tensor([0.229, 0.224, 0.225], device=model_device).view(
+                1, 3, 1, 1
+            )
             image_proc = (image_proc - mean) / std
 
             # forward the image through the model
@@ -650,7 +773,9 @@ Actions.
 """
 
 
-@generic_io_descriptor(dtype=torch.float32, observation_type="Action", on_inspect=[record_shape])
+@generic_io_descriptor(
+    dtype=torch.float32, observation_type="Action", on_inspect=[record_shape]
+)
 def last_action(env: ManagerBasedEnv, action_name: str | None = None) -> torch.Tensor:
     """The last input action to the environment.
 
@@ -663,13 +788,111 @@ def last_action(env: ManagerBasedEnv, action_name: str | None = None) -> torch.T
         return env.action_manager.get_term(action_name).raw_actions
 
 
+@generic_io_descriptor(
+    dtype=torch.float32, observation_type="Action", on_inspect=[record_shape]
+)
+def last_joint_action(
+    env: ManagerBasedEnv, action_name: str | None = None
+) -> torch.Tensor:
+    """The last input joint action to the environment.
+
+    Returns the joint position targets that were applied to the joints. For IK-based
+    actions (like DifferentialInverseKinematicsAction), this returns the joint position
+    targets computed by the IK solver from end-effector pose commands. For regular
+    joint actions, this returns the processed actions (after scaling, offsetting, and
+    clipping).
+
+    This is useful for observing the actual joint position commands that were sent
+    to the robot, which may have been converted from end-effector poses via IK.
+
+    Args:
+        env: The environment instance.
+        action_name: The name of the joint action term for which the action is required.
+            If None, returns joint position targets from all action terms concatenated.
+
+    Returns:
+        The joint position targets. If action_name is provided, returns the joint
+        position targets from that specific action term. If None, returns all joint
+        position targets concatenated from all action terms.
+    """
+    if action_name is None:
+        # Concatenate joint position targets from all action terms
+        joint_actions_list = []
+        for term_name in env.action_manager.active_terms:
+            term = env.action_manager.get_term(term_name)
+            # Check if this is an IK action that has joint_pos_des (joint position targets)
+            joint_pos_des = getattr(term, "joint_pos_des", None)
+            if joint_pos_des is not None:
+                joint_actions_list.append(joint_pos_des)
+            # For Pink IK, processed_actions already contains joint positions
+            elif (
+                hasattr(term, "__class__")
+                and "InverseKinematics" in term.__class__.__name__
+            ):
+                if hasattr(term, "processed_actions"):
+                    joint_actions_list.append(term.processed_actions)
+            # For regular joint actions, return processed_actions
+            elif hasattr(term, "processed_actions"):
+                joint_actions_list.append(term.processed_actions)
+            else:
+                raise ValueError(f"No joint actions found for action term {term_name}")
+
+        # print(f"joint_actions_list: {joint_actions_list}")
+
+        return torch.cat(joint_actions_list, dim=-1)
+    else:
+        # Return joint position targets from the specific action term
+        term = env.action_manager.get_term(action_name)
+        # Check if this is an IK action that has joint_pos_des (joint position targets)
+        joint_pos_des = getattr(term, "joint_pos_des", None)
+        if joint_pos_des is not None:
+            return joint_pos_des
+        # For Pink IK, processed_actions already contains joint positions
+        elif (
+            hasattr(term, "__class__")
+            and "InverseKinematics" in term.__class__.__name__
+        ):
+            if hasattr(term, "processed_actions"):
+                return term.processed_actions
+        # For regular joint actions, return processed_actions
+        elif hasattr(term, "processed_actions"):
+            return term.processed_actions
+        else:
+            raise ValueError(f"No joint actions found for action term {action_name}")
+
+
+@generic_io_descriptor(
+    dtype=torch.float32, observation_type="Action", on_inspect=[record_shape]
+)
+def last_droid_action(env: ManagerBasedEnv) -> torch.Tensor:
+    """The last input DROID robot action to the environment.
+
+    Returns the joint position targets that were applied to the arm joints and binary gripper commands.
+    """
+    # Return joint position targets from the specific action term
+    arm_action_term = env.action_manager.get_term("arm_action")
+    gripper_action_term = env.action_manager.get_term("gripper_action")
+    # Check if this is an IK action that has joint_pos_des (joint position targets)
+    arm_joint_pos_des = getattr(arm_action_term, "joint_pos_des", None)
+    gripper_action = gripper_action_term.raw_actions
+
+    droid_action = torch.cat([arm_joint_pos_des, gripper_action], dim=-1)
+
+    # print(f"droid_action: {droid_action}")
+    return droid_action
+
+
 """
 Commands.
 """
 
 
-@generic_io_descriptor(dtype=torch.float32, observation_type="Command", on_inspect=[record_shape])
-def generated_commands(env: ManagerBasedRLEnv, command_name: str | None = None) -> torch.Tensor:
+@generic_io_descriptor(
+    dtype=torch.float32, observation_type="Command", on_inspect=[record_shape]
+)
+def generated_commands(
+    env: ManagerBasedRLEnv, command_name: str | None = None
+) -> torch.Tensor:
     """The generated command from command term in the command manager with the given name."""
     return env.command_manager.get_command(command_name)
 

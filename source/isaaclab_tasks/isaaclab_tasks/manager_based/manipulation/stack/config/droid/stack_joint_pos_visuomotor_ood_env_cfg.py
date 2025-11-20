@@ -177,44 +177,39 @@ class DroidCubeStackVisuomotorOODEnvCfg(stack_joint_pos_env_cfg.DroidCubeStackEn
         self.events = EventCfg()
 
         # Set cameras
-        # Set wrist camera
-        self.scene.wrist_cam = CameraCfg(
-            prim_path="{ENV_REGEX_NS}/Robot/base_link/wrist_cam",
-            update_period=0.0,
-            height=144,
-            width=256,
-            data_types=["rgb", "distance_to_image_plane"],
+        self.scene.table_cam = CameraCfg(
+            prim_path="{ENV_REGEX_NS}/table_cam",
+            height=720,
+            width=1280,
+            data_types=["rgb"],
             spawn=sim_utils.PinholeCameraCfg(
-                focal_length=12.0,
-                focus_distance=400.0,
-                horizontal_aperture=20.955,
-                clipping_range=(0.01, 2),
+                focal_length=2.1,
+                focus_distance=28.0,
+                horizontal_aperture=5.376,
+                vertical_aperture=3.024,
             ),
             offset=CameraCfg.OffsetCfg(
-                # pos=(-0.03, -0.03, -0.09), rot=(-0.56472, -0.42555, -0.42555, -0.56472), convention="ros"
-                pos=(0.005, -0.03, -0.07),
-                rot=(-0.56472, -0.42555, -0.42555, -0.56472),
-                convention="ros",
+                pos=(0.05, 0.57, 0.66),
+                rot=(-0.393, -0.195, 0.399, 0.805),
+                convention="opengl",
             ),
         )
 
-        # Set table view camera
-        self.scene.table_cam = CameraCfg(
-            prim_path="{ENV_REGEX_NS}/table_cam",
-            update_period=0.0,
-            height=144,
-            width=256,
-            data_types=["rgb", "distance_to_image_plane"],
+        self.scene.wrist_cam = CameraCfg(
+            prim_path="{ENV_REGEX_NS}/Robot/Gripper/Robotiq_2F_85/base_link/wrist_cam",
+            height=720,
+            width=1280,
+            data_types=["rgb"],
             spawn=sim_utils.PinholeCameraCfg(
-                focal_length=15.0,
-                focus_distance=400.0,
-                horizontal_aperture=20.955,
-                clipping_range=(0.1, 2),
+                focal_length=2.8,
+                focus_distance=28.0,
+                horizontal_aperture=5.376,
+                vertical_aperture=3.024,
             ),
             offset=CameraCfg.OffsetCfg(
-                pos=(1.0, 0.0, 0.4),
-                rot=(0.35355, -0.61237, -0.61237, 0.35355),
-                convention="ros",
+                pos=(0.011, -0.031, -0.074),
+                rot=(-0.420, 0.570, 0.576, -0.409),
+                convention="opengl",
             ),
         )
 

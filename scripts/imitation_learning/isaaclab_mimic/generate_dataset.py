@@ -15,13 +15,29 @@ import argparse
 from isaaclab.app import AppLauncher
 
 # add argparse arguments
-parser = argparse.ArgumentParser(description="Generate demonstrations for Isaac Lab environments.")
-parser.add_argument("--task", type=str, default=None, help="Name of the task.")
-parser.add_argument("--generation_num_trials", type=int, help="Number of demos to be generated.", default=None)
-parser.add_argument(
-    "--num_envs", type=int, default=1, help="Number of environments to instantiate for generating datasets."
+parser = argparse.ArgumentParser(
+    description="Generate demonstrations for Isaac Lab environments."
 )
-parser.add_argument("--input_file", type=str, default=None, required=True, help="File path to the source dataset file.")
+parser.add_argument("--task", type=str, default=None, help="Name of the task.")
+parser.add_argument(
+    "--generation_num_trials",
+    type=int,
+    help="Number of demos to be generated.",
+    default=None,
+)
+parser.add_argument(
+    "--num_envs",
+    type=int,
+    default=1,
+    help="Number of environments to instantiate for generating datasets.",
+)
+parser.add_argument(
+    "--input_file",
+    type=str,
+    default=None,
+    required=True,
+    help="File path to the source dataset file.",
+)
 parser.add_argument(
     "--output_file",
     type=str,
@@ -76,7 +92,11 @@ import isaaclab_mimic.envs  # noqa: F401
 
 if args_cli.enable_pinocchio:
     import isaaclab_mimic.envs.pinocchio_envs  # noqa: F401
-from isaaclab_mimic.datagen.generation import env_loop, setup_async_generation, setup_env_config
+from isaaclab_mimic.datagen.generation import (
+    env_loop,
+    setup_async_generation,
+    setup_env_config,
+)
 from isaaclab_mimic.datagen.utils import get_env_name_from_dataset, setup_output_paths
 
 import isaaclab_tasks  # noqa: F401
@@ -104,14 +124,21 @@ def main():
         generation_num_trials=args_cli.generation_num_trials,
     )
 
+    termination_terms = env_cfg.termination_terms
+
     # Create environment
     env = gym.make(env_name, cfg=env_cfg).unwrapped
 
     if not isinstance(env, ManagerBasedRLMimicEnv):
-        raise ValueError("The environment should be derived from ManagerBasedRLMimicEnv")
+        raise ValueError(
+            "The environment should be derived from ManagerBasedRLMimicEnv"
+        )
 
     # Check if the mimic API from this environment contains decprecated signatures
-    if "action_noise_dict" not in inspect.signature(env.target_eef_pose_to_action).parameters:
+    if (
+        "action_noise_dict"
+        not in inspect.signature(env.target_eef_pose_to_action).parameters
+    ):
         omni.log.warn(
             f'The "noise" parameter in the "{env_name}" environment\'s mimic API "target_eef_pose_to_action", '
             "is deprecated. Please update the API to take action_noise_dict instead."
@@ -128,7 +155,9 @@ def main():
     motion_planners = None
     if args_cli.use_skillgen:
         from isaaclab_mimic.motion_planners.curobo.curobo_planner import CuroboPlanner
-        from isaaclab_mimic.motion_planners.curobo.curobo_planner_cfg import CuroboPlannerCfg
+        from isaaclab_mimic.motion_planners.curobo.curobo_planner_cfg import (
+            CuroboPlannerCfg,
+        )
 
         # Create one motion planner per environment
         motion_planners = {}
@@ -154,17 +183,22 @@ def main():
         env.cfg.datagen_config.use_skillgen = True
 
     # Setup and run async data generation
+    # print("termination_terms", termination_terms)
     async_components = setup_async_generation(
         env=env,
         num_envs=args_cli.num_envs,
         input_file=args_cli.input_file,
         success_term=success_term,
+        termination_terms=termination_terms,
         pause_subtask=args_cli.pause_subtask,
         motion_planners=motion_planners,  # Pass the motion planners dictionary
     )
 
     try:
-        data_gen_tasks = asyncio.ensure_future(asyncio.gather(*async_components["tasks"]))
+        data_gen_tasks = asyncio.ensure_future(
+            asyncio.gather(*async_components["tasks"])
+        )
+
         env_loop(
             env,
             async_components["reset_queue"],

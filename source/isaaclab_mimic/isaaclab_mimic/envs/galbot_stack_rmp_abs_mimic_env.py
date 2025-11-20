@@ -15,6 +15,9 @@ class RmpFlowGalbotCubeStackAbsMimicEnv(FrankaCubeStackIKAbsMimicEnv):
     Isaac Lab Mimic environment wrapper class for Galbot Cube Stack RmpFlow Absolute env.
     """
 
+    # should terminate (used for data generation)
+    should_terminate = dict[int, bool]()
+
     def get_object_poses(self, env_ids: Sequence[int] | None = None):
         """
         Rewrite this function to get the pose of each object in robot base frame,
@@ -39,9 +42,14 @@ class RmpFlowGalbotCubeStackAbsMimicEnv(FrankaCubeStackIKAbsMimicEnv):
         object_pose_matrix = dict()
         for obj_name, obj_state in rigid_object_states.items():
             pos_obj_base, quat_obj_base = PoseUtils.subtract_frame_transforms(
-                root_pos, root_quat, obj_state["root_pose"][env_ids, :3], obj_state["root_pose"][env_ids, 3:7]
+                root_pos,
+                root_quat,
+                obj_state["root_pose"][env_ids, :3],
+                obj_state["root_pose"][env_ids, 3:7],
             )
             rot_obj_base = PoseUtils.matrix_from_quat(quat_obj_base)
-            object_pose_matrix[obj_name] = PoseUtils.make_pose(pos_obj_base, rot_obj_base)
+            object_pose_matrix[obj_name] = PoseUtils.make_pose(
+                pos_obj_base, rot_obj_base
+            )
 
         return object_pose_matrix

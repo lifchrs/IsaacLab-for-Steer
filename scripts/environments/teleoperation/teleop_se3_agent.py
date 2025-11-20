@@ -13,8 +13,12 @@ from collections.abc import Callable
 from isaaclab.app import AppLauncher
 
 # add argparse arguments
-parser = argparse.ArgumentParser(description="Keyboard teleoperation for Isaac Lab environments.")
-parser.add_argument("--num_envs", type=int, default=1, help="Number of environments to simulate.")
+parser = argparse.ArgumentParser(
+    description="Keyboard teleoperation for Isaac Lab environments."
+)
+parser.add_argument(
+    "--num_envs", type=int, default=1, help="Number of environments to simulate."
+)
 parser.add_argument(
     "--teleop_device",
     type=str,
@@ -22,7 +26,9 @@ parser.add_argument(
     help="Device for interacting with environment. Examples: keyboard, spacemouse, gamepad, handtracking, manusvive",
 )
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
-parser.add_argument("--sensitivity", type=float, default=1.0, help="Sensitivity factor.")
+parser.add_argument(
+    "--sensitivity", type=float, default=1.0, help="Sensitivity factor."
+)
 parser.add_argument(
     "--enable_pinocchio",
     action="store_true",
@@ -56,7 +62,14 @@ import torch
 
 import omni.log
 
-from isaaclab.devices import Se3Gamepad, Se3GamepadCfg, Se3Keyboard, Se3KeyboardCfg, Se3SpaceMouse, Se3SpaceMouseCfg
+from isaaclab.devices import (
+    Se3Gamepad,
+    Se3GamepadCfg,
+    Se3Keyboard,
+    Se3KeyboardCfg,
+    Se3SpaceMouse,
+    Se3SpaceMouseCfg,
+)
 from isaaclab.devices.openxr import remove_camera_configs
 from isaaclab.devices.teleop_device_factory import create_teleop_device
 from isaaclab.managers import TerminationTermCfg as DoneTerm
@@ -80,7 +93,9 @@ def main() -> None:
         None
     """
     # parse configuration
-    env_cfg = parse_env_cfg(args_cli.task, device=args_cli.device, num_envs=args_cli.num_envs)
+    env_cfg = parse_env_cfg(
+        args_cli.task, device=args_cli.device, num_envs=args_cli.num_envs
+    )
     env_cfg.env_name = args_cli.task
     # modify configuration
     env_cfg.terminations.time_out = None
@@ -88,7 +103,9 @@ def main() -> None:
         # set the resampling time range to large number to avoid resampling
         env_cfg.commands.object_pose.resampling_time_range = (1.0e9, 1.0e9)
         # add termination condition for reaching the goal otherwise the environment won't reset
-        env_cfg.terminations.object_reached_goal = DoneTerm(func=mdp.object_reached_goal)
+        env_cfg.terminations.object_reached_goal = DoneTerm(
+            func=mdp.object_reached_goal
+        )
 
     if args_cli.xr:
         # External cameras are not supported with XR teleop
@@ -173,29 +190,47 @@ def main() -> None:
     # Create teleop device from config if present, otherwise create manually
     teleop_interface = None
     try:
-        if hasattr(env_cfg, "teleop_devices") and args_cli.teleop_device in env_cfg.teleop_devices.devices:
+        if (
+            hasattr(env_cfg, "teleop_devices")
+            and args_cli.teleop_device in env_cfg.teleop_devices.devices
+        ):
             teleop_interface = create_teleop_device(
-                args_cli.teleop_device, env_cfg.teleop_devices.devices, teleoperation_callbacks
+                args_cli.teleop_device,
+                env_cfg.teleop_devices.devices,
+                teleoperation_callbacks,
             )
         else:
-            omni.log.warn(f"No teleop device '{args_cli.teleop_device}' found in environment config. Creating default.")
+            omni.log.warn(
+                f"No teleop device '{args_cli.teleop_device}' found in environment config. Creating default."
+            )
             # Create fallback teleop device
             sensitivity = args_cli.sensitivity
             if args_cli.teleop_device.lower() == "keyboard":
                 teleop_interface = Se3Keyboard(
-                    Se3KeyboardCfg(pos_sensitivity=0.05 * sensitivity, rot_sensitivity=0.05 * sensitivity)
+                    Se3KeyboardCfg(
+                        pos_sensitivity=0.05 * sensitivity,
+                        rot_sensitivity=0.05 * sensitivity,
+                    )
                 )
             elif args_cli.teleop_device.lower() == "spacemouse":
                 teleop_interface = Se3SpaceMouse(
-                    Se3SpaceMouseCfg(pos_sensitivity=0.05 * sensitivity, rot_sensitivity=0.05 * sensitivity)
+                    Se3SpaceMouseCfg(
+                        pos_sensitivity=0.05 * sensitivity,
+                        rot_sensitivity=0.05 * sensitivity,
+                    )
                 )
             elif args_cli.teleop_device.lower() == "gamepad":
                 teleop_interface = Se3Gamepad(
-                    Se3GamepadCfg(pos_sensitivity=0.1 * sensitivity, rot_sensitivity=0.1 * sensitivity)
+                    Se3GamepadCfg(
+                        pos_sensitivity=0.1 * sensitivity,
+                        rot_sensitivity=0.1 * sensitivity,
+                    )
                 )
             else:
                 omni.log.error(f"Unsupported teleop device: {args_cli.teleop_device}")
-                omni.log.error("Supported devices: keyboard, spacemouse, gamepad, handtracking")
+                omni.log.error(
+                    "Supported devices: keyboard, spacemouse, gamepad, handtracking"
+                )
                 env.close()
                 simulation_app.close()
                 return

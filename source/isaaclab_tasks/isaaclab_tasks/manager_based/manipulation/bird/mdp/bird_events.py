@@ -186,16 +186,13 @@ def randomize_object_pose(
     min_separation: float = 0.0,
     max_sample_tries: int = 5000,
 ):
-    # exit()
     if env_ids is None:
         return
-
-    # exit()
 
     # Randomize poses in each environment independently
     for cur_env in env_ids.tolist():
         pose_list = sample_object_poses(
-            num_objects=4,  # 6 objects with 4 poses
+            num_objects=len(asset_cfgs),
             min_separation=min_separation,
             pose_range=pose_range,
             max_sample_tries=max_sample_tries,
@@ -204,20 +201,10 @@ def randomize_object_pose(
         # Randomize pose for each object
         for i in range(len(asset_cfgs)):
             asset_cfg = asset_cfgs[i]
-            print(asset_cfg.name)
             asset = env.scene[asset_cfg.name]
 
-            if asset_cfg.name == "bird":
-                pose_id = 0
-            elif asset_cfg.name == "pig" or asset_cfg.name == "block_2":
-                pose_id = 1
-            elif asset_cfg.name == "vase":
-                pose_id = 2
-            elif asset_cfg.name == "block_2" or asset_cfg.name == "block_3":
-                pose_id = 3
-
             # Write pose to simulation
-            pose_tensor = torch.tensor([pose_list[pose_id]], device=env.device)
+            pose_tensor = torch.tensor([pose_list[i]], device=env.device)
             positions = pose_tensor[:, 0:3] + env.scene.env_origins[cur_env, 0:3]
             orientations = math_utils.quat_from_euler_xyz(
                 pose_tensor[:, 3], pose_tensor[:, 4], pose_tensor[:, 5]

@@ -126,7 +126,7 @@ class Se3SpaceMouse(DeviceBase):
         rot_vec = Rotation.from_euler("XYZ", self._delta_rot).as_rotvec()
         command = np.concatenate([self._delta_pos, rot_vec])
         if self.gripper_term:
-            gripper_value = -1.0 if self._close_gripper else 1.0
+            gripper_value = 1.0 if self._close_gripper else 0.0
             command = np.append(command, gripper_value)
 
         return torch.tensor(command, dtype=torch.float32, device=self._sim_device)
@@ -176,22 +176,54 @@ class Se3SpaceMouse(DeviceBase):
                 # readings from 6-DoF sensor
                 if self._device_name == "3Dconnexion Universal Receiver":
                     if data[0] == 1:
-                        self._delta_pos[1] = self.pos_sensitivity * convert_buffer(data[1], data[2])
-                        self._delta_pos[0] = self.pos_sensitivity * convert_buffer(data[3], data[4])
-                        self._delta_pos[2] = self.pos_sensitivity * convert_buffer(data[5], data[6]) * -1.0
+                        self._delta_pos[1] = self.pos_sensitivity * convert_buffer(
+                            data[1], data[2]
+                        )
+                        self._delta_pos[0] = self.pos_sensitivity * convert_buffer(
+                            data[3], data[4]
+                        )
+                        self._delta_pos[2] = (
+                            self.pos_sensitivity
+                            * convert_buffer(data[5], data[6])
+                            * -1.0
+                        )
 
-                        self._delta_rot[1] = self.rot_sensitivity * convert_buffer(data[1 + 6], data[2 + 6])
-                        self._delta_rot[0] = self.rot_sensitivity * convert_buffer(data[3 + 6], data[4 + 6])
-                        self._delta_rot[2] = self.rot_sensitivity * convert_buffer(data[5 + 6], data[6 + 6]) * -1.0
+                        self._delta_rot[1] = self.rot_sensitivity * convert_buffer(
+                            data[1 + 6], data[2 + 6]
+                        )
+                        self._delta_rot[0] = self.rot_sensitivity * convert_buffer(
+                            data[3 + 6], data[4 + 6]
+                        )
+                        self._delta_rot[2] = (
+                            self.rot_sensitivity
+                            * convert_buffer(data[5 + 6], data[6 + 6])
+                            * -1.0
+                        )
                 else:
                     if data[0] == 1:
-                        self._delta_pos[1] = self.pos_sensitivity * convert_buffer(data[1], data[2])
-                        self._delta_pos[0] = self.pos_sensitivity * convert_buffer(data[3], data[4])
-                        self._delta_pos[2] = self.pos_sensitivity * convert_buffer(data[5], data[6]) * -1.0
+                        self._delta_pos[1] = self.pos_sensitivity * convert_buffer(
+                            data[1], data[2]
+                        )
+                        self._delta_pos[0] = self.pos_sensitivity * convert_buffer(
+                            data[3], data[4]
+                        )
+                        self._delta_pos[2] = (
+                            self.pos_sensitivity
+                            * convert_buffer(data[5], data[6])
+                            * -1.0
+                        )
                     elif data[0] == 2 and not self._read_rotation:
-                        self._delta_rot[1] = self.rot_sensitivity * convert_buffer(data[1], data[2])
-                        self._delta_rot[0] = self.rot_sensitivity * convert_buffer(data[3], data[4])
-                        self._delta_rot[2] = self.rot_sensitivity * convert_buffer(data[5], data[6]) * -1.0
+                        self._delta_rot[1] = self.rot_sensitivity * convert_buffer(
+                            data[1], data[2]
+                        )
+                        self._delta_rot[0] = self.rot_sensitivity * convert_buffer(
+                            data[3], data[4]
+                        )
+                        self._delta_rot[2] = (
+                            self.rot_sensitivity
+                            * convert_buffer(data[5], data[6])
+                            * -1.0
+                        )
                 # readings from the side buttons
                 if data[0] == 3:
                     # press left button

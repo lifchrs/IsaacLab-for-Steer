@@ -175,10 +175,11 @@ class DroidCubeStackVisuomotorEnvCfg(stack_joint_pos_env_cfg.DroidCubeStackEnvCf
         # Set cameras
         # Set wrist camera
         self.scene.wrist_cam = CameraCfg(
-            prim_path="{ENV_REGEX_NS}/Robot/base_link/wrist_cam",
+            # prim_path="{ENV_REGEX_NS}/Robot/base_link/wrist_cam",
+            prim_path="{ENV_REGEX_NS}/Robot/Gripper/Robotiq_2F_85/base_link/wrist_cam",
             update_period=0.0,
-            height=144,
-            width=256,
+            height=720,
+            width=1280,
             data_types=["rgb", "distance_to_image_plane"],
             spawn=sim_utils.PinholeCameraCfg(
                 focal_length=12.0,
@@ -198,8 +199,8 @@ class DroidCubeStackVisuomotorEnvCfg(stack_joint_pos_env_cfg.DroidCubeStackEnvCf
         self.scene.table_cam = CameraCfg(
             prim_path="{ENV_REGEX_NS}/table_cam",
             update_period=0.0,
-            height=144,
-            width=256,
+            height=720,
+            width=1280,
             data_types=["rgb", "distance_to_image_plane"],
             spawn=sim_utils.PinholeCameraCfg(
                 focal_length=15.0,

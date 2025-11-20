@@ -14,6 +14,7 @@ from copy import deepcopy
 import isaaclab.utils.math as PoseUtils
 from isaaclab.envs import ManagerBasedRLMimicEnv
 from isaaclab.managers import TerminationTermCfg
+from typing import List
 
 
 class Waypoint:
@@ -75,7 +76,9 @@ class WaypointSequence:
         # handle scalar to tensor conversion
         num_timesteps = poses.shape[0]
         if isinstance(action_noise, float):
-            action_noise = action_noise * torch.ones((num_timesteps, 1), dtype=torch.float32)
+            action_noise = action_noise * torch.ones(
+                (num_timesteps, 1), dtype=torch.float32
+            )
         action_noise = action_noise.reshape(-1, 1)
 
         # make WaypointSequence instance
@@ -231,7 +234,9 @@ class WaypointTrajectory:
                 when @execute is called)
         """
         if len(self.waypoint_sequences) == 0:
-            assert skip_interpolation, "cannot interpolate since this is the first waypoint sequence"
+            assert (
+                skip_interpolation
+            ), "cannot interpolate since this is the first waypoint sequence"
 
         if skip_interpolation:
             # repeat the target @num_steps times
@@ -324,7 +329,9 @@ class WaypointTrajectory:
                 # segment of constant target poses equal to @other's first target pose
 
                 # account for the fact that we pop'd the first element of @other in anticipation of an interpolation segment
-                num_steps_fixed_to_use = num_steps_fixed if need_interp else (num_steps_fixed + 1)
+                num_steps_fixed_to_use = (
+                    num_steps_fixed if need_interp else (num_steps_fixed + 1)
+                )
                 self.add_waypoint_sequence_for_target_pose(
                     pose=target_for_interpolation.pose,
                     gripper_action=target_for_interpolation.gripper_action,
@@ -346,7 +353,11 @@ class WaypointTrajectory:
         Returns:
             sequence (WaypointSequence instance)
         """
-        return WaypointSequence(sequence=[waypoint for seq in self.waypoint_sequences for waypoint in seq.sequence])
+        return WaypointSequence(
+            sequence=[
+                waypoint for seq in self.waypoint_sequences for waypoint in seq.sequence
+            ]
+        )
 
 
 class MultiWaypoint:
@@ -365,6 +376,7 @@ class MultiWaypoint:
         self,
         env: ManagerBasedRLMimicEnv,
         success_term: TerminationTermCfg,
+        termination_terms: List[TerminationTermCfg],
         env_id: int = 0,
         env_action_queue: asyncio.Queue | None = None,
     ):
@@ -384,10 +396,21 @@ class MultiWaypoint:
         state = env.scene.get_state(is_relative=True)
 
         # construct action from target poses and gripper actions
-        target_eef_pose_dict = {eef_name: waypoint.pose for eef_name, waypoint in self.waypoints.items()}
-        gripper_action_dict = {eef_name: waypoint.gripper_action for eef_name, waypoint in self.waypoints.items()}
-        if "action_noise_dict" in inspect.signature(env.target_eef_pose_to_action).parameters:
-            action_noise_dict = {eef_name: waypoint.noise for eef_name, waypoint in self.waypoints.items()}
+        target_eef_pose_dict = {
+            eef_name: waypoint.pose for eef_name, waypoint in self.waypoints.items()
+        }
+        gripper_action_dict = {
+            eef_name: waypoint.gripper_action
+            for eef_name, waypoint in self.waypoints.items()
+        }
+        if (
+            "action_noise_dict"
+            in inspect.signature(env.target_eef_pose_to_action).parameters
+        ):
+            action_noise_dict = {
+                eef_name: waypoint.noise
+                for eef_name, waypoint in self.waypoints.items()
+            }
             play_action = env.target_eef_pose_to_action(
                 target_eef_pose_dict=target_eef_pose_dict,
                 gripper_action_dict=gripper_action_dict,
@@ -405,7 +428,9 @@ class MultiWaypoint:
             )
 
         if play_action.dim() == 1:
-            play_action = play_action.unsqueeze(0)  # Reshape with additional env dimension
+            play_action = play_action.unsqueeze(
+                0
+            )  # Reshape with additional env dimension
 
         # step environment
         if env_action_queue is None:
@@ -415,7 +440,17 @@ class MultiWaypoint:
             await env_action_queue.join()
             obs = env.obs_buf
 
-        success = bool(success_term.func(env, **success_term.params)[env_id])
+        if (not env_id in env.should_terminate) or (not env.should_terminate[env_id]):
+            for termination_term in termination_terms:
+                if bool(termination_term.func(env, **termination_term.params)[env_id]):
+                    env.should_terminate[env_id] = True
+                    print(f"Environment {env_id} should terminate")
+                    break
+
+        if env_id in env.should_terminate and env.should_terminate[env_id]:
+            success = False
+        else:
+            success = bool(success_term.func(env, **success_term.params)[env_id])
 
         result = dict(
             states=[state],

@@ -77,7 +77,9 @@ class Se3Keyboard(DeviceBase):
         # note: Use weakref on callbacks to ensure that this object can be deleted when its destructor is called.
         self._keyboard_sub = self._input.subscribe_to_keyboard_events(
             self._keyboard,
-            lambda event, *args, obj=weakref.proxy(self): obj._on_keyboard_event(event, *args),
+            lambda event, *args, obj=weakref.proxy(self): obj._on_keyboard_event(
+                event, *args
+            ),
         )
         # bindings for keyboard to command
         self._create_key_bindings()
@@ -143,7 +145,7 @@ class Se3Keyboard(DeviceBase):
         # return the command and gripper state
         command = np.concatenate([self._delta_pos, rot_vec])
         if self.gripper_term:
-            gripper_value = -1.0 if self._close_gripper else 1.0
+            gripper_value = 1.0 if self._close_gripper else 0.0
             command = np.append(command, gripper_value)
 
         return torch.tensor(command, dtype=torch.float32, device=self._sim_device)

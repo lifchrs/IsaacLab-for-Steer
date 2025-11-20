@@ -15,7 +15,12 @@ class FrankaCubeStackIKAbsMimicEnv(ManagerBasedRLMimicEnv):
     Isaac Lab Mimic environment wrapper class for Franka Cube Stack IK Abs env.
     """
 
-    def get_robot_eef_pose(self, eef_name: str, env_ids: Sequence[int] | None = None) -> torch.Tensor:
+    # should terminate (used for data generation)
+    should_terminate = dict[int, bool]()
+
+    def get_robot_eef_pose(
+        self, eef_name: str, env_ids: Sequence[int] | None = None
+    ) -> torch.Tensor:
         """Get current robot end effector pose."""
         if env_ids is None:
             env_ids = slice(None)
@@ -27,7 +32,11 @@ class FrankaCubeStackIKAbsMimicEnv(ManagerBasedRLMimicEnv):
         return PoseUtils.make_pose(eef_pos, PoseUtils.matrix_from_quat(eef_quat))
 
     def target_eef_pose_to_action(
-        self, target_eef_pose_dict: dict, gripper_action_dict: dict, noise: float | None = None, env_id: int = 0
+        self,
+        target_eef_pose_dict: dict,
+        gripper_action_dict: dict,
+        noise: float | None = None,
+        env_id: int = 0,
     ) -> torch.Tensor:
         """Convert target pose to action.
 
@@ -61,14 +70,18 @@ class FrankaCubeStackIKAbsMimicEnv(ManagerBasedRLMimicEnv):
         (gripper_action,) = gripper_action_dict.values()
 
         # add noise to action
-        pose_action = torch.cat([target_pos, PoseUtils.quat_from_matrix(target_rot)], dim=0)
+        pose_action = torch.cat(
+            [target_pos, PoseUtils.quat_from_matrix(target_rot)], dim=0
+        )
         if noise is not None:
             noise = noise * torch.randn_like(pose_action)
             pose_action += noise
 
         return torch.cat([pose_action, gripper_action], dim=0).unsqueeze(0)
 
-    def action_to_target_eef_pose(self, action: torch.Tensor) -> dict[str, torch.Tensor]:
+    def action_to_target_eef_pose(
+        self, action: torch.Tensor
+    ) -> dict[str, torch.Tensor]:
         """Convert action to target pose."""
         eef_name = list(self.cfg.subtask_configs.keys())[0]
 
@@ -80,12 +93,16 @@ class FrankaCubeStackIKAbsMimicEnv(ManagerBasedRLMimicEnv):
 
         return {eef_name: target_poses}
 
-    def actions_to_gripper_actions(self, actions: torch.Tensor) -> dict[str, torch.Tensor]:
+    def actions_to_gripper_actions(
+        self, actions: torch.Tensor
+    ) -> dict[str, torch.Tensor]:
         """Extract gripper actions."""
         # last dimension is gripper action
         return {list(self.cfg.subtask_configs.keys())[0]: actions[:, -1:]}
 
-    def get_subtask_term_signals(self, env_ids: Sequence[int] | None = None) -> dict[str, torch.Tensor]:
+    def get_subtask_term_signals(
+        self, env_ids: Sequence[int] | None = None
+    ) -> dict[str, torch.Tensor]:
         """Get subtask termination signals."""
         if env_ids is None:
             env_ids = slice(None)

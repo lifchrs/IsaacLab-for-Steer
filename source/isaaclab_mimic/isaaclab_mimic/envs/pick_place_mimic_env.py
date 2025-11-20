@@ -19,6 +19,9 @@ class PickPlaceRelMimicEnv(FrankaCubeStackIKRelMimicEnv):
     This MimicEnv is used when all observations are in the robot base frame.
     """
 
+    # should terminate (used for data generation)
+    should_terminate = dict[int, bool]()
+
     def get_object_poses(self, env_ids: Sequence[int] | None = None):
         """
         Gets the pose of each object (including rigid objects and articulated objects) in the robot base frame.
@@ -47,23 +50,35 @@ class PickPlaceRelMimicEnv(FrankaCubeStackIKRelMimicEnv):
         # Process rigid objects
         for obj_name, obj_state in rigid_object_states.items():
             pos_obj_base, quat_obj_base = PoseUtils.subtract_frame_transforms(
-                root_pos, root_quat, obj_state["root_pose"][env_ids, :3], obj_state["root_pose"][env_ids, 3:7]
+                root_pos,
+                root_quat,
+                obj_state["root_pose"][env_ids, :3],
+                obj_state["root_pose"][env_ids, 3:7],
             )
             rot_obj_base = PoseUtils.matrix_from_quat(quat_obj_base)
-            object_pose_matrix[obj_name] = PoseUtils.make_pose(pos_obj_base, rot_obj_base)
+            object_pose_matrix[obj_name] = PoseUtils.make_pose(
+                pos_obj_base, rot_obj_base
+            )
 
         # Process articulated objects (except robot)
         for art_name, art_state in articulation_states.items():
             if art_name != "robot":  # Skip robot
                 pos_obj_base, quat_obj_base = PoseUtils.subtract_frame_transforms(
-                    root_pos, root_quat, art_state["root_pose"][env_ids, :3], art_state["root_pose"][env_ids, 3:7]
+                    root_pos,
+                    root_quat,
+                    art_state["root_pose"][env_ids, :3],
+                    art_state["root_pose"][env_ids, 3:7],
                 )
                 rot_obj_base = PoseUtils.matrix_from_quat(quat_obj_base)
-                object_pose_matrix[art_name] = PoseUtils.make_pose(pos_obj_base, rot_obj_base)
+                object_pose_matrix[art_name] = PoseUtils.make_pose(
+                    pos_obj_base, rot_obj_base
+                )
 
         return object_pose_matrix
 
-    def get_subtask_term_signals(self, env_ids: Sequence[int] | None = None) -> dict[str, torch.Tensor]:
+    def get_subtask_term_signals(
+        self, env_ids: Sequence[int] | None = None
+    ) -> dict[str, torch.Tensor]:
         """
         Gets a dictionary of termination signal flags for each subtask in a task. The flag is 1
         when the subtask has been completed and 0 otherwise. The implementation of this method is
@@ -130,23 +145,35 @@ class PickPlaceAbsMimicEnv(FrankaCubeStackIKAbsMimicEnv):
         # Process rigid objects
         for obj_name, obj_state in rigid_object_states.items():
             pos_obj_base, quat_obj_base = PoseUtils.subtract_frame_transforms(
-                root_pos, root_quat, obj_state["root_pose"][env_ids, :3], obj_state["root_pose"][env_ids, 3:7]
+                root_pos,
+                root_quat,
+                obj_state["root_pose"][env_ids, :3],
+                obj_state["root_pose"][env_ids, 3:7],
             )
             rot_obj_base = PoseUtils.matrix_from_quat(quat_obj_base)
-            object_pose_matrix[obj_name] = PoseUtils.make_pose(pos_obj_base, rot_obj_base)
+            object_pose_matrix[obj_name] = PoseUtils.make_pose(
+                pos_obj_base, rot_obj_base
+            )
 
         # Process articulated objects (except robot)
         for art_name, art_state in articulation_states.items():
             if art_name != "robot":  # Skip robot
                 pos_obj_base, quat_obj_base = PoseUtils.subtract_frame_transforms(
-                    root_pos, root_quat, art_state["root_pose"][env_ids, :3], art_state["root_pose"][env_ids, 3:7]
+                    root_pos,
+                    root_quat,
+                    art_state["root_pose"][env_ids, :3],
+                    art_state["root_pose"][env_ids, 3:7],
                 )
                 rot_obj_base = PoseUtils.matrix_from_quat(quat_obj_base)
-                object_pose_matrix[art_name] = PoseUtils.make_pose(pos_obj_base, rot_obj_base)
+                object_pose_matrix[art_name] = PoseUtils.make_pose(
+                    pos_obj_base, rot_obj_base
+                )
 
         return object_pose_matrix
 
-    def get_subtask_term_signals(self, env_ids: Sequence[int] | None = None) -> dict[str, torch.Tensor]:
+    def get_subtask_term_signals(
+        self, env_ids: Sequence[int] | None = None
+    ) -> dict[str, torch.Tensor]:
         """
         Gets a dictionary of termination signal flags for each subtask in a task. The flag is 1
         when the subtask has been completed and 0 otherwise. The implementation of this method is

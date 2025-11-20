@@ -9,6 +9,13 @@ from isaaclab.envs.mdp.actions.actions_cfg import DifferentialInverseKinematicsA
 from isaaclab.utils import configclass
 
 from . import stack_joint_pos_visuomotor_sim_env_cfg
+from isaaclab_tasks.manager_based.manipulation.stack import mdp
+
+
+##
+# Pre-defined configs
+##
+from isaaclab_assets.robots.franka import DROID_CFG  # isort: skip
 
 
 @configclass
@@ -18,6 +25,9 @@ class DroidIkRelCubeStackVisuomotorSimEnvCfg(
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
+
+        # self.scene.robot = DROID_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        # self.scene.robot.spawn.semantic_tags = [("class", "robot")]
 
         # Set IK controller for the robot
         self.actions.arm_action = DifferentialInverseKinematicsActionCfg(

@@ -9,7 +9,7 @@ Base class for data generator.
 import asyncio
 import numpy as np
 import torch
-from typing import Any
+from typing import Any, List
 
 import isaaclab.utils.math as PoseUtils
 from isaaclab.envs import (
@@ -22,7 +22,12 @@ from isaaclab.managers import TerminationTermCfg
 
 from isaaclab_mimic.datagen.datagen_info import DatagenInfo
 from isaaclab_mimic.datagen.selection_strategy import make_selection_strategy
-from isaaclab_mimic.datagen.waypoint import MultiWaypoint, Waypoint, WaypointSequence, WaypointTrajectory
+from isaaclab_mimic.datagen.waypoint import (
+    MultiWaypoint,
+    Waypoint,
+    WaypointSequence,
+    WaypointTrajectory,
+)
 
 from .datagen_info_pool import DataGenInfoPool
 
@@ -121,7 +126,9 @@ def get_delta_pose_with_scheme(
     if pos_noise_scale != 0.0 or rot_noise_scale != 0.0:
         pos = delta_pose[:3, 3]
         rot = delta_pose[:3, :3]
-        pos_new, rot_new = PoseUtils.add_uniform_noise_to_pose(pos, rot, pos_noise_scale, rot_noise_scale)
+        pos_new, rot_new = PoseUtils.add_uniform_noise_to_pose(
+            pos, rot, pos_noise_scale, rot_noise_scale
+        )
         delta_pose = torch.eye(4, device=device)
         delta_pose[:3, 3] = pos_new
         delta_pose[:3, :3] = rot_new
@@ -173,9 +180,13 @@ class DataGenerator:
             self.src_demo_datagen_info_pool = DataGenInfoPool(
                 env=self.env, env_cfg=self.env_cfg, device=self.env.device
             )
-            self.src_demo_datagen_info_pool.load_from_dataset_file(dataset_path, select_demo_keys=self.demo_keys)
+            self.src_demo_datagen_info_pool.load_from_dataset_file(
+                dataset_path, select_demo_keys=self.demo_keys
+            )
         else:
-            raise ValueError("Either src_demo_datagen_info_pool or dataset_path must be provided")
+            raise ValueError(
+                "Either src_demo_datagen_info_pool or dataset_path must be provided"
+            )
 
     def __repr__(self):
         """
@@ -197,14 +208,22 @@ class DataGenerator:
 
         randomized_subtask_boundaries = {}
 
-        for eef_name, subtask_boundaries in self.src_demo_datagen_info_pool.subtask_boundaries.items():
+        for (
+            eef_name,
+            subtask_boundaries,
+        ) in self.src_demo_datagen_info_pool.subtask_boundaries.items():
             # Initial subtask start and end indices - shape (N, S, 2)
             subtask_boundaries = np.array(subtask_boundaries)
 
             # Randomize the start of the first subtask
             first_subtask_start_offsets = np.random.randint(
-                low=self.env_cfg.subtask_configs[eef_name][0].first_subtask_start_offset_range[0],
-                high=self.env_cfg.subtask_configs[eef_name][0].first_subtask_start_offset_range[0] + 1,
+                low=self.env_cfg.subtask_configs[eef_name][
+                    0
+                ].first_subtask_start_offset_range[0],
+                high=self.env_cfg.subtask_configs[eef_name][
+                    0
+                ].first_subtask_start_offset_range[0]
+                + 1,
                 size=subtask_boundaries.shape[0],
             )
             subtask_boundaries[:, 0, 0] += first_subtask_start_offsets
@@ -215,8 +234,13 @@ class DataGenerator:
                 # If skillgen is enabled, sample a random start offset to increase demonstration variety.
                 if self.env_cfg.datagen_config.use_skillgen:
                     start_offset = np.random.randint(
-                        low=self.env_cfg.subtask_configs[eef_name][i].subtask_start_offset_range[0],
-                        high=self.env_cfg.subtask_configs[eef_name][i].subtask_start_offset_range[1] + 1,
+                        low=self.env_cfg.subtask_configs[eef_name][
+                            i
+                        ].subtask_start_offset_range[0],
+                        high=self.env_cfg.subtask_configs[eef_name][
+                            i
+                        ].subtask_start_offset_range[1]
+                        + 1,
                         size=subtask_boundaries.shape[0],
                     )
                     subtask_boundaries[:, i, 0] += start_offset
@@ -226,14 +250,21 @@ class DataGenerator:
 
                 # Sample end offset for each demonstration
                 end_offsets = np.random.randint(
-                    low=self.env_cfg.subtask_configs[eef_name][i].subtask_term_offset_range[0],
-                    high=self.env_cfg.subtask_configs[eef_name][i].subtask_term_offset_range[1] + 1,
+                    low=self.env_cfg.subtask_configs[eef_name][
+                        i
+                    ].subtask_term_offset_range[0],
+                    high=self.env_cfg.subtask_configs[eef_name][
+                        i
+                    ].subtask_term_offset_range[1]
+                    + 1,
                     size=subtask_boundaries.shape[0],
                 )
                 subtask_boundaries[:, i, 1] = subtask_boundaries[:, i, 1] + end_offsets
 
             # Ensure non-empty subtasks
-            assert np.all((subtask_boundaries[:, :, 1] - subtask_boundaries[:, :, 0]) > 0), "got empty subtasks!"
+            assert np.all(
+                (subtask_boundaries[:, :, 1] - subtask_boundaries[:, :, 0]) > 0
+            ), "got empty subtasks!"
 
             # Ensure subtask indices increase (both starts and ends)
             assert np.all(
@@ -241,8 +272,12 @@ class DataGenerator:
             ), "subtask indices do not strictly increase"
 
             # Ensure subtasks are in order
-            subtask_inds_flat = subtask_boundaries.reshape(subtask_boundaries.shape[0], -1)
-            assert np.all((subtask_inds_flat[:, 1:] - subtask_inds_flat[:, :-1]) >= 0), "subtask indices not in order"
+            subtask_inds_flat = subtask_boundaries.reshape(
+                subtask_boundaries.shape[0], -1
+            )
+            assert np.all(
+                (subtask_inds_flat[:, 1:] - subtask_inds_flat[:, :-1]) >= 0
+            ), "subtask indices not in order"
 
             randomized_subtask_boundaries[eef_name] = subtask_boundaries
 
@@ -291,21 +326,27 @@ class DataGenerator:
             # Get subtask segment using indices
             src_subtask_datagen_infos.append(
                 DatagenInfo(
-                    eef_pose=src_ep_datagen_info.eef_pose[eef_name][subtask_start_ind:subtask_end_ind],
+                    eef_pose=src_ep_datagen_info.eef_pose[eef_name][
+                        subtask_start_ind:subtask_end_ind
+                    ],
                     # Only include object pose for relevant object in subtask
                     object_poses=(
                         {
-                            subtask_object_name: src_ep_datagen_info.object_poses[subtask_object_name][
-                                subtask_start_ind:subtask_end_ind
-                            ]
+                            subtask_object_name: src_ep_datagen_info.object_poses[
+                                subtask_object_name
+                            ][subtask_start_ind:subtask_end_ind]
                         }
                         if (subtask_object_name is not None)
                         else None
                     ),
                     # Subtask termination signal is unused
                     subtask_term_signals=None,
-                    target_eef_pose=src_ep_datagen_info.target_eef_pose[eef_name][subtask_start_ind:subtask_end_ind],
-                    gripper_action=src_ep_datagen_info.gripper_action[eef_name][subtask_start_ind:subtask_end_ind],
+                    target_eef_pose=src_ep_datagen_info.target_eef_pose[eef_name][
+                        subtask_start_ind:subtask_end_ind
+                    ],
+                    gripper_action=src_ep_datagen_info.gripper_action[eef_name][
+                        subtask_start_ind:subtask_end_ind
+                    ],
                 )
             )
 
@@ -369,7 +410,9 @@ class DataGenerator:
         """
         subtask_configs = self.env_cfg.subtask_configs[eef_name]
         # name of object for this subtask
-        subtask_object_name = self.env_cfg.subtask_configs[eef_name][subtask_ind].object_ref
+        subtask_object_name = self.env_cfg.subtask_configs[eef_name][
+            subtask_ind
+        ].object_ref
         subtask_object_pose = (
             self.env.get_object_poses(env_ids=[env_id])[subtask_object_name][0]
             if (subtask_object_name is not None)
@@ -378,22 +421,30 @@ class DataGenerator:
 
         is_first_subtask = subtask_ind == 0
 
-        need_source_demo_selection = is_first_subtask or self.env_cfg.datagen_config.generation_select_src_per_subtask
+        need_source_demo_selection = (
+            is_first_subtask
+            or self.env_cfg.datagen_config.generation_select_src_per_subtask
+        )
 
         if not self.env_cfg.datagen_config.generation_select_src_per_arm:
-            need_source_demo_selection = need_source_demo_selection and selected_src_demo_inds[eef_name] is None
+            need_source_demo_selection = (
+                need_source_demo_selection and selected_src_demo_inds[eef_name] is None
+            )
 
         use_delta_transform = None
         coord_transform_scheme = None
         if (eef_name, subtask_ind) in runtime_subtask_constraints_dict:
-            if runtime_subtask_constraints_dict[(eef_name, subtask_ind)]["type"] == SubTaskConstraintType.COORDINATION:
+            if (
+                runtime_subtask_constraints_dict[(eef_name, subtask_ind)]["type"]
+                == SubTaskConstraintType.COORDINATION
+            ):
                 # Avoid selecting source demo if it has already been selected by the concurrent task
-                concurrent_task_spec_key = runtime_subtask_constraints_dict[(eef_name, subtask_ind)][
-                    "concurrent_task_spec_key"
-                ]
-                concurrent_subtask_ind = runtime_subtask_constraints_dict[(eef_name, subtask_ind)][
-                    "concurrent_subtask_ind"
-                ]
+                concurrent_task_spec_key = runtime_subtask_constraints_dict[
+                    (eef_name, subtask_ind)
+                ]["concurrent_task_spec_key"]
+                concurrent_subtask_ind = runtime_subtask_constraints_dict[
+                    (eef_name, subtask_ind)
+                ]["concurrent_subtask_ind"]
                 concurrent_selected_src_ind = runtime_subtask_constraints_dict[
                     (concurrent_task_spec_key, concurrent_subtask_ind)
                 ]["selected_src_demo_ind"]
@@ -407,13 +458,17 @@ class DataGenerator:
                     ]["transform"]
                 else:
                     assert (
-                        "transform" not in runtime_subtask_constraints_dict[(eef_name, subtask_ind)]
+                        "transform"
+                        not in runtime_subtask_constraints_dict[(eef_name, subtask_ind)]
                     ), "transform should not be set for concurrent task"
                     # Need to transform demo according to scheme
-                    coord_transform_scheme = runtime_subtask_constraints_dict[(eef_name, subtask_ind)][
-                        "coordination_scheme"
-                    ]
-                    if coord_transform_scheme != SubTaskConstraintCoordinationScheme.REPLAY:
+                    coord_transform_scheme = runtime_subtask_constraints_dict[
+                        (eef_name, subtask_ind)
+                    ]["coordination_scheme"]
+                    if (
+                        coord_transform_scheme
+                        != SubTaskConstraintCoordinationScheme.REPLAY
+                    ):
                         assert (
                             subtask_object_name is not None
                         ), f"object reference should not be None for {coord_transform_scheme} coordination scheme"
@@ -421,47 +476,69 @@ class DataGenerator:
         if need_source_demo_selection:
             selected_src_demo_inds[eef_name] = self.select_source_demo(
                 eef_name=eef_name,
-                eef_pose=self.env.get_robot_eef_pose(env_ids=[env_id], eef_name=eef_name)[0],
+                eef_pose=self.env.get_robot_eef_pose(
+                    env_ids=[env_id], eef_name=eef_name
+                )[0],
                 object_pose=subtask_object_pose,
-                src_demo_current_subtask_boundaries=all_randomized_subtask_boundaries[eef_name][:, subtask_ind],
+                src_demo_current_subtask_boundaries=all_randomized_subtask_boundaries[
+                    eef_name
+                ][:, subtask_ind],
                 subtask_object_name=subtask_object_name,
-                selection_strategy_name=self.env_cfg.subtask_configs[eef_name][subtask_ind].selection_strategy,
-                selection_strategy_kwargs=self.env_cfg.subtask_configs[eef_name][subtask_ind].selection_strategy_kwargs,
+                selection_strategy_name=self.env_cfg.subtask_configs[eef_name][
+                    subtask_ind
+                ].selection_strategy,
+                selection_strategy_kwargs=self.env_cfg.subtask_configs[eef_name][
+                    subtask_ind
+                ].selection_strategy_kwargs,
             )
 
         assert selected_src_demo_inds[eef_name] is not None
         selected_src_demo_ind = selected_src_demo_inds[eef_name]
 
-        if not self.env_cfg.datagen_config.generation_select_src_per_arm and need_source_demo_selection:
+        if (
+            not self.env_cfg.datagen_config.generation_select_src_per_arm
+            and need_source_demo_selection
+        ):
             for itrated_eef_name in self.env_cfg.subtask_configs.keys():
                 selected_src_demo_inds[itrated_eef_name] = selected_src_demo_ind
 
         # Selected subtask segment time indices
-        selected_src_subtask_boundary = all_randomized_subtask_boundaries[eef_name][selected_src_demo_ind, subtask_ind]
+        selected_src_subtask_boundary = all_randomized_subtask_boundaries[eef_name][
+            selected_src_demo_ind, subtask_ind
+        ]
 
         if (eef_name, subtask_ind) in runtime_subtask_constraints_dict:
-            if runtime_subtask_constraints_dict[(eef_name, subtask_ind)]["type"] == SubTaskConstraintType.COORDINATION:
+            if (
+                runtime_subtask_constraints_dict[(eef_name, subtask_ind)]["type"]
+                == SubTaskConstraintType.COORDINATION
+            ):
                 # Store selected source demo ind for concurrent task
                 runtime_subtask_constraints_dict[(eef_name, subtask_ind)][
                     "selected_src_demo_ind"
                 ] = selected_src_demo_ind
-                concurrent_task_spec_key = runtime_subtask_constraints_dict[(eef_name, subtask_ind)][
-                    "concurrent_task_spec_key"
-                ]
-                concurrent_subtask_ind = runtime_subtask_constraints_dict[(eef_name, subtask_ind)][
-                    "concurrent_subtask_ind"
-                ]
-                concurrent_src_subtask_inds = all_randomized_subtask_boundaries[concurrent_task_spec_key][
-                    selected_src_demo_ind, concurrent_subtask_ind
-                ]
-                subtask_len = selected_src_subtask_boundary[1] - selected_src_subtask_boundary[0]
-                concurrent_subtask_len = concurrent_src_subtask_inds[1] - concurrent_src_subtask_inds[0]
-                runtime_subtask_constraints_dict[(eef_name, subtask_ind)]["synchronous_steps"] = min(
-                    subtask_len, concurrent_subtask_len
+                concurrent_task_spec_key = runtime_subtask_constraints_dict[
+                    (eef_name, subtask_ind)
+                ]["concurrent_task_spec_key"]
+                concurrent_subtask_ind = runtime_subtask_constraints_dict[
+                    (eef_name, subtask_ind)
+                ]["concurrent_subtask_ind"]
+                concurrent_src_subtask_inds = all_randomized_subtask_boundaries[
+                    concurrent_task_spec_key
+                ][selected_src_demo_ind, concurrent_subtask_ind]
+                subtask_len = (
+                    selected_src_subtask_boundary[1] - selected_src_subtask_boundary[0]
                 )
+                concurrent_subtask_len = (
+                    concurrent_src_subtask_inds[1] - concurrent_src_subtask_inds[0]
+                )
+                runtime_subtask_constraints_dict[(eef_name, subtask_ind)][
+                    "synchronous_steps"
+                ] = min(subtask_len, concurrent_subtask_len)
 
         # Get subtask segment, consisting of the sequence of robot eef poses, target poses, gripper actions
-        src_ep_datagen_info = self.src_demo_datagen_info_pool.datagen_infos[selected_src_demo_ind]
+        src_ep_datagen_info = self.src_demo_datagen_info_pool.datagen_infos[
+            selected_src_demo_ind
+        ]
         src_subtask_eef_poses = src_ep_datagen_info.eef_pose[eef_name][
             selected_src_subtask_boundary[0] : selected_src_subtask_boundary[1]
         ]
@@ -474,16 +551,23 @@ class DataGenerator:
 
         # Get reference object pose from source demo
         src_subtask_object_pose = (
-            src_ep_datagen_info.object_poses[subtask_object_name][selected_src_subtask_boundary[0]]
+            src_ep_datagen_info.object_poses[subtask_object_name][
+                selected_src_subtask_boundary[0]
+            ]
             if (subtask_object_name is not None)
             else None
         )
 
-        if is_first_subtask or self.env_cfg.datagen_config.generation_transform_first_robot_pose:
+        if (
+            is_first_subtask
+            or self.env_cfg.datagen_config.generation_transform_first_robot_pose
+        ):
             # Source segment consists of first robot eef pose and the target poses. This ensures that
             # We will interpolate to the first robot eef pose in this source segment, instead of the
             # first robot target pose.
-            src_eef_poses = torch.cat([src_subtask_eef_poses[0:1], src_subtask_target_poses], dim=0)
+            src_eef_poses = torch.cat(
+                [src_subtask_eef_poses[0:1], src_subtask_target_poses], dim=0
+            )
             # Account for extra timestep added to @src_eef_poses
             src_subtask_gripper_actions = torch.cat(
                 [src_subtask_gripper_actions[0:1], src_subtask_gripper_actions], dim=0
@@ -496,8 +580,10 @@ class DataGenerator:
         # Transform source demonstration segment using relevant object pose.
         if use_delta_transform is not None:
             # Use delta transform from concurrent task
-            transformed_eef_poses = transform_source_data_segment_using_delta_object_pose(
-                src_eef_poses, use_delta_transform
+            transformed_eef_poses = (
+                transform_source_data_segment_using_delta_object_pose(
+                    src_eef_poses, use_delta_transform
+                )
             )
 
         else:
@@ -507,16 +593,22 @@ class DataGenerator:
                     subtask_object_pose,
                     runtime_subtask_constraints_dict[(eef_name, subtask_ind)],
                 )
-                transformed_eef_poses = transform_source_data_segment_using_delta_object_pose(
-                    src_eef_poses, delta_obj_pose
+                transformed_eef_poses = (
+                    transform_source_data_segment_using_delta_object_pose(
+                        src_eef_poses, delta_obj_pose
+                    )
                 )
-                runtime_subtask_constraints_dict[(eef_name, subtask_ind)]["transform"] = delta_obj_pose
+                runtime_subtask_constraints_dict[(eef_name, subtask_ind)][
+                    "transform"
+                ] = delta_obj_pose
             else:
                 if subtask_object_name is not None:
-                    transformed_eef_poses = transform_source_data_segment_using_object_pose(
-                        subtask_object_pose,
-                        src_eef_poses,
-                        src_subtask_object_pose,
+                    transformed_eef_poses = (
+                        transform_source_data_segment_using_object_pose(
+                            subtask_object_pose,
+                            src_eef_poses,
+                            src_subtask_object_pose,
+                        )
                     )
                 else:
                     print(f"skipping transformation for {subtask_object_name}")
@@ -581,7 +673,10 @@ class DataGenerator:
         # and then execute it once we have the trajectory.
         traj_to_execute = WaypointTrajectory()
 
-        if self.env_cfg.datagen_config.generation_interpolate_from_last_target_pose and (not is_first_subtask):
+        if (
+            self.env_cfg.datagen_config.generation_interpolate_from_last_target_pose
+            and (not is_first_subtask)
+        ):
             # Interpolation segment will start from last target pose (which may not have been achieved).
             assert prev_executed_traj is not None
             last_waypoint = prev_executed_traj[-1]
@@ -589,9 +684,13 @@ class DataGenerator:
         else:
             # Interpolation segment will start from current robot eef pose.
             init_sequence = WaypointSequence.from_poses(
-                poses=self.env.get_robot_eef_pose(env_ids=[env_id], eef_name=eef_name)[0].unsqueeze(0),
+                poses=self.env.get_robot_eef_pose(env_ids=[env_id], eef_name=eef_name)[
+                    0
+                ].unsqueeze(0),
                 gripper_actions=subtask_trajectory[0].gripper_action.unsqueeze(0),
-                action_noise=self.env_cfg.subtask_configs[eef_name][subtask_index].action_noise,
+                action_noise=self.env_cfg.subtask_configs[eef_name][
+                    subtask_index
+                ].action_noise,
             )
         traj_to_execute.add_waypoint_sequence(init_sequence)
 
@@ -599,10 +698,18 @@ class DataGenerator:
         # Interpolation will happen from the initial pose (@init_sequence) to the first element of @transformed_seq.
         traj_to_execute.merge(
             subtask_trajectory,
-            num_steps_interp=self.env_cfg.subtask_configs[eef_name][subtask_index].num_interpolation_steps,
-            num_steps_fixed=self.env_cfg.subtask_configs[eef_name][subtask_index].num_fixed_steps,
+            num_steps_interp=self.env_cfg.subtask_configs[eef_name][
+                subtask_index
+            ].num_interpolation_steps,
+            num_steps_fixed=self.env_cfg.subtask_configs[eef_name][
+                subtask_index
+            ].num_fixed_steps,
             action_noise=(
-                float(self.env_cfg.subtask_configs[eef_name][subtask_index].apply_noise_during_interpolation)
+                float(
+                    self.env_cfg.subtask_configs[eef_name][
+                        subtask_index
+                    ].apply_noise_during_interpolation
+                )
                 * self.env_cfg.subtask_configs[eef_name][subtask_index].action_noise
             ),
         )
@@ -619,6 +726,7 @@ class DataGenerator:
         self,
         env_id: int,
         success_term: TerminationTermCfg,
+        termination_terms: List[TerminationTermCfg],
         env_reset_queue: asyncio.Queue | None = None,
         env_action_queue: asyncio.Queue | None = None,
         pause_subtask: bool = False,
@@ -631,6 +739,7 @@ class DataGenerator:
         Args:
             env_id: environment ID
             success_term: success function to check if the task is successful
+            termination_terms: termination functions to check if the task is terminated
             env_reset_queue: queue to store environment IDs for reset
             env_action_queue: queue to store actions for each environment
             pause_subtask: whether to pause the subtask generation
@@ -653,7 +762,9 @@ class DataGenerator:
             raise ValueError("motion_planner must be provided if use_skillgen is True")
 
         # reset the env to create a new task demo instance
-        env_id_tensor = torch.tensor([env_id], dtype=torch.int64, device=self.env.device)
+        env_id_tensor = torch.tensor(
+            [env_id], dtype=torch.int64, device=self.env.device
+        )
         self.env.recorder_manager.reset(env_ids=env_id_tensor)
         await env_reset_queue.put(env_id)
         await env_reset_queue.join()
@@ -662,7 +773,9 @@ class DataGenerator:
         # create runtime subtask constraint rules from subtask constraint configs
         runtime_subtask_constraints_dict = {}
         for subtask_constraint in self.env_cfg.task_constraint_configs:
-            runtime_subtask_constraints_dict.update(subtask_constraint.generate_runtime_subtask_constraints())
+            runtime_subtask_constraints_dict.update(
+                subtask_constraint.generate_runtime_subtask_constraints()
+            )
 
         # save generated data in these variables
         generated_states = []
@@ -691,16 +804,24 @@ class DataGenerator:
         # While loop that runs per time step
         while True:
             async with self.src_demo_datagen_info_pool.asyncio_lock:
-                if len(self.src_demo_datagen_info_pool.datagen_infos) > prev_src_demo_datagen_info_pool_size:
+                if (
+                    len(self.src_demo_datagen_info_pool.datagen_infos)
+                    > prev_src_demo_datagen_info_pool_size
+                ):
                     # src_demo_datagen_info_pool at this point may be updated with new demos,
                     # So we need to update subtask boundaries again
                     randomized_subtask_boundaries = (
                         self.randomize_subtask_boundaries()
                     )  # shape [N, S, 2], last dim is start and end action lengths
-                    prev_src_demo_datagen_info_pool_size = len(self.src_demo_datagen_info_pool.datagen_infos)
+                    prev_src_demo_datagen_info_pool_size = len(
+                        self.src_demo_datagen_info_pool.datagen_infos
+                    )
 
                 # Generate trajectory for a subtask for the eef that is currently at the beginning of a subtask
-                for eef_name, eef_subtask_step_index in current_eef_subtask_step_indices.items():
+                for (
+                    eef_name,
+                    eef_subtask_step_index,
+                ) in current_eef_subtask_step_indices.items():
                     if eef_subtask_step_index is None:
                         # Trajectory stored in current_eef_subtask_trajectories[eef_name] has been executed,
                         # So we need to determine the next trajectory
@@ -723,39 +844,57 @@ class DataGenerator:
                             if self.env_cfg.datagen_config.use_skillgen:
                                 # Define the goal for the motion planner: the start of the next subtask.
                                 target_eef_pose = eef_subtask_trajectory[0].pose
-                                target_gripper_action = eef_subtask_trajectory[0].gripper_action
+                                target_gripper_action = eef_subtask_trajectory[
+                                    0
+                                ].gripper_action
 
                                 # Determine expected object attachment using environment-specific logic (optional)
                                 expected_attached_object = None
                                 if hasattr(self.env, "get_expected_attached_object"):
-                                    expected_attached_object = self.env.get_expected_attached_object(
-                                        eef_name, current_eef_subtask_indices[eef_name], self.env.cfg
+                                    expected_attached_object = (
+                                        self.env.get_expected_attached_object(
+                                            eef_name,
+                                            current_eef_subtask_indices[eef_name],
+                                            self.env.cfg,
+                                        )
                                     )
 
                                 # Plan motion using motion planner with comprehensive world update and attachment handling
                                 if motion_planner:
-                                    print(f"\n--- Environment {env_id}: Planning motion to target pose ---")
+                                    print(
+                                        f"\n--- Environment {env_id}: Planning motion to target pose ---"
+                                    )
                                     print(f"Target pose: {target_eef_pose}")
-                                    print(f"Expected attached object: {expected_attached_object}")
+                                    print(
+                                        f"Expected attached object: {expected_attached_object}"
+                                    )
 
                                     # This call updates the planner's world model and computes the trajectory.
                                     planning_success = motion_planner.update_world_and_plan_motion(
                                         target_pose=target_eef_pose,
                                         expected_attached_object=expected_attached_object,
                                         env_id=env_id,
-                                        step_size=getattr(motion_planner, "step_size", None),
-                                        enable_retiming=hasattr(motion_planner, "step_size")
+                                        step_size=getattr(
+                                            motion_planner, "step_size", None
+                                        ),
+                                        enable_retiming=hasattr(
+                                            motion_planner, "step_size"
+                                        )
                                         and motion_planner.step_size is not None,
                                     )
 
                                     # If planning succeeds, execute the planner's trajectory first.
                                     if planning_success:
-                                        print(f"Env {env_id}: Motion planning succeeded")
+                                        print(
+                                            f"Env {env_id}: Motion planning succeeded"
+                                        )
                                         # The original subtask trajectory is stored to be executed after the transition.
-                                        next_eef_subtask_trajectories_after_motion[eef_name] = eef_subtask_trajectory
-                                        next_eef_subtask_indices_after_motion[eef_name] = current_eef_subtask_indices[
+                                        next_eef_subtask_trajectories_after_motion[
                                             eef_name
-                                        ]
+                                        ] = eef_subtask_trajectory
+                                        next_eef_subtask_indices_after_motion[
+                                            eef_name
+                                        ] = current_eef_subtask_indices[eef_name]
                                         # Mark the current subtask as invalid (-1) until the transition is done.
                                         current_eef_subtask_indices[eef_name] = -1
 
@@ -773,16 +912,20 @@ class DataGenerator:
 
                                     else:
                                         # If planning fails, abort the data generation trial.
-                                        print(f"Env {env_id}: Motion planning failed for {eef_name}")
+                                        print(
+                                            f"Env {env_id}: Motion planning failed for {eef_name}"
+                                        )
                                         return {"success": False}
                             else:
                                 # Without skillgen, transition using simple interpolation.
-                                current_eef_subtask_trajectories[eef_name] = self.merge_eef_subtask_trajectory(
-                                    env_id,
-                                    eef_name,
-                                    current_eef_subtask_indices[eef_name],
-                                    current_eef_subtask_trajectories[eef_name],
-                                    eef_subtask_trajectory,
+                                current_eef_subtask_trajectories[eef_name] = (
+                                    self.merge_eef_subtask_trajectory(
+                                        env_id,
+                                        eef_name,
+                                        current_eef_subtask_indices[eef_name],
+                                        current_eef_subtask_trajectories[eef_name],
+                                        eef_subtask_trajectory,
+                                    )
                                 )
                                 current_eef_subtask_step_indices[eef_name] = 0
                         else:
@@ -790,14 +933,22 @@ class DataGenerator:
                             print("Finished executing motion-planned trajectory")
                             # It is important to pass the prev_executed_traj to merge_eef_subtask_trajectory
                             # so that it can correctly interpolate from the last pose of the motion-planned trajectory
-                            prev_executed_traj = current_eef_subtask_trajectories[eef_name]
-                            current_eef_subtask_indices[eef_name] = next_eef_subtask_indices_after_motion[eef_name]
-                            current_eef_subtask_trajectories[eef_name] = self.merge_eef_subtask_trajectory(
-                                env_id,
-                                eef_name,
-                                current_eef_subtask_indices[eef_name],
-                                prev_executed_traj,
-                                next_eef_subtask_trajectories_after_motion[eef_name],
+                            prev_executed_traj = current_eef_subtask_trajectories[
+                                eef_name
+                            ]
+                            current_eef_subtask_indices[eef_name] = (
+                                next_eef_subtask_indices_after_motion[eef_name]
+                            )
+                            current_eef_subtask_trajectories[eef_name] = (
+                                self.merge_eef_subtask_trajectory(
+                                    env_id,
+                                    eef_name,
+                                    current_eef_subtask_indices[eef_name],
+                                    prev_executed_traj,
+                                    next_eef_subtask_trajectories_after_motion[
+                                        eef_name
+                                    ],
+                                )
                             )
                             current_eef_subtask_step_indices[eef_name] = 0
                             next_eef_subtask_trajectories_after_motion[eef_name] = None
@@ -810,30 +961,44 @@ class DataGenerator:
                 step_ind = current_eef_subtask_step_indices[eef_name]
                 subtask_ind = current_eef_subtask_indices[eef_name]
                 if (eef_name, subtask_ind) in runtime_subtask_constraints_dict:
-                    task_constraint = runtime_subtask_constraints_dict[(eef_name, subtask_ind)]
-                    if task_constraint["type"] == SubTaskConstraintType._SEQUENTIAL_LATTER:
+                    task_constraint = runtime_subtask_constraints_dict[
+                        (eef_name, subtask_ind)
+                    ]
+                    if (
+                        task_constraint["type"]
+                        == SubTaskConstraintType._SEQUENTIAL_LATTER
+                    ):
                         min_time_diff = task_constraint["min_time_diff"]
                         if not task_constraint["fulfilled"]:
                             if (
                                 min_time_diff == -1
-                                or step_ind >= len(current_eef_subtask_trajectories[eef_name]) - min_time_diff
+                                or step_ind
+                                >= len(current_eef_subtask_trajectories[eef_name])
+                                - min_time_diff
                             ):
                                 if step_ind > 0:
                                     # Wait at the same step
                                     step_ind -= 1
-                                    current_eef_subtask_step_indices[eef_name] = step_ind
+                                    current_eef_subtask_step_indices[eef_name] = (
+                                        step_ind
+                                    )
 
                     elif task_constraint["type"] == SubTaskConstraintType.COORDINATION:
                         synchronous_steps = task_constraint["synchronous_steps"]
-                        concurrent_task_spec_key = task_constraint["concurrent_task_spec_key"]
-                        concurrent_subtask_ind = task_constraint["concurrent_subtask_ind"]
+                        concurrent_task_spec_key = task_constraint[
+                            "concurrent_task_spec_key"
+                        ]
+                        concurrent_subtask_ind = task_constraint[
+                            "concurrent_subtask_ind"
+                        ]
                         concurrent_task_fulfilled = runtime_subtask_constraints_dict[
                             (concurrent_task_spec_key, concurrent_subtask_ind)
                         ]["fulfilled"]
 
                         if (
                             task_constraint["coordination_synchronize_start"]
-                            and current_eef_subtask_indices[concurrent_task_spec_key] < concurrent_subtask_ind
+                            and current_eef_subtask_indices[concurrent_task_spec_key]
+                            < concurrent_subtask_ind
                         ):
                             # The concurrent eef is not yet at the concurrent subtask, so wait at the first action
                             # This also makes sure that the concurrent task starts at the same time as this task
@@ -842,25 +1007,35 @@ class DataGenerator:
                         else:
                             if (
                                 not concurrent_task_fulfilled
-                                and step_ind >= len(current_eef_subtask_trajectories[eef_name]) - synchronous_steps
+                                and step_ind
+                                >= len(current_eef_subtask_trajectories[eef_name])
+                                - synchronous_steps
                             ):
                                 # Trigger concurrent task
-                                runtime_subtask_constraints_dict[(concurrent_task_spec_key, concurrent_subtask_ind)][
-                                    "fulfilled"
-                                ] = True
+                                runtime_subtask_constraints_dict[
+                                    (concurrent_task_spec_key, concurrent_subtask_ind)
+                                ]["fulfilled"] = True
 
                             if not task_constraint["fulfilled"]:
-                                if step_ind >= len(current_eef_subtask_trajectories[eef_name]) - synchronous_steps:
+                                if (
+                                    step_ind
+                                    >= len(current_eef_subtask_trajectories[eef_name])
+                                    - synchronous_steps
+                                ):
                                     if step_ind > 0:
                                         step_ind -= 1
-                                        current_eef_subtask_step_indices[eef_name] = step_ind  # wait here
+                                        current_eef_subtask_step_indices[eef_name] = (
+                                            step_ind  # wait here
+                                        )
 
                 waypoint = current_eef_subtask_trajectories[eef_name][step_ind]
 
                 # Update visualization if motion planner is available
                 if motion_planner and motion_planner.visualize_spheres:
                     current_joints = self.env.scene["robot"].data.joint_pos[env_id]
-                    motion_planner._update_visualization_at_joint_positions(current_joints)
+                    motion_planner._update_visualization_at_joint_positions(
+                        current_joints
+                    )
 
                 eef_waypoint_dict[eef_name] = waypoint
             multi_waypoint = MultiWaypoint(eef_waypoint_dict)
@@ -869,6 +1044,7 @@ class DataGenerator:
             exec_results = await multi_waypoint.execute(
                 env=self.env,
                 success_term=success_term,
+                termination_terms=termination_terms,
                 env_id=env_id,
                 env_action_queue=env_action_queue,
             )
@@ -887,25 +1063,48 @@ class DataGenerator:
                     current_eef_subtask_trajectories[eef_name]
                 ):  # Subtask done
                     if (eef_name, subtask_ind) in runtime_subtask_constraints_dict:
-                        task_constraint = runtime_subtask_constraints_dict[(eef_name, subtask_ind)]
-                        if task_constraint["type"] == SubTaskConstraintType._SEQUENTIAL_FORMER:
-                            constrained_task_spec_key = task_constraint["constrained_task_spec_key"]
-                            constrained_subtask_ind = task_constraint["constrained_subtask_ind"]
-                            runtime_subtask_constraints_dict[(constrained_task_spec_key, constrained_subtask_ind)][
-                                "fulfilled"
-                            ] = True
-                        elif task_constraint["type"] == SubTaskConstraintType.COORDINATION:
-                            concurrent_task_spec_key = task_constraint["concurrent_task_spec_key"]
-                            concurrent_subtask_ind = task_constraint["concurrent_subtask_ind"]
+                        task_constraint = runtime_subtask_constraints_dict[
+                            (eef_name, subtask_ind)
+                        ]
+                        if (
+                            task_constraint["type"]
+                            == SubTaskConstraintType._SEQUENTIAL_FORMER
+                        ):
+                            constrained_task_spec_key = task_constraint[
+                                "constrained_task_spec_key"
+                            ]
+                            constrained_subtask_ind = task_constraint[
+                                "constrained_subtask_ind"
+                            ]
+                            runtime_subtask_constraints_dict[
+                                (constrained_task_spec_key, constrained_subtask_ind)
+                            ]["fulfilled"] = True
+                        elif (
+                            task_constraint["type"]
+                            == SubTaskConstraintType.COORDINATION
+                        ):
+                            concurrent_task_spec_key = task_constraint[
+                                "concurrent_task_spec_key"
+                            ]
+                            concurrent_subtask_ind = task_constraint[
+                                "concurrent_subtask_ind"
+                            ]
                             # Concurrent_task_spec_idx = task_spec_keys.index(concurrent_task_spec_key)
                             task_constraint["finished"] = True
                             # Check if concurrent task has been finished
                             assert (
-                                runtime_subtask_constraints_dict[(concurrent_task_spec_key, concurrent_subtask_ind)][
-                                    "finished"
+                                runtime_subtask_constraints_dict[
+                                    (concurrent_task_spec_key, concurrent_subtask_ind)
+                                ]["finished"]
+                                or current_eef_subtask_step_indices[
+                                    concurrent_task_spec_key
                                 ]
-                                or current_eef_subtask_step_indices[concurrent_task_spec_key]
-                                >= len(current_eef_subtask_trajectories[concurrent_task_spec_key]) - 1
+                                >= len(
+                                    current_eef_subtask_trajectories[
+                                        concurrent_task_spec_key
+                                    ]
+                                )
+                                - 1
                             )
 
                     if pause_subtask:
@@ -914,7 +1113,10 @@ class DataGenerator:
                             " Press any key to continue..."
                         )
                     # This is a check to see if this arm has completed all the subtasks
-                    if current_eef_subtask_indices[eef_name] == len(self.env_cfg.subtask_configs[eef_name]) - 1:
+                    if (
+                        current_eef_subtask_indices[eef_name]
+                        == len(self.env_cfg.subtask_configs[eef_name]) - 1
+                    ):
                         eef_subtasks_done[eef_name] = True
                         # If all subtasks done for this arm, repeat last waypoint to make sure this arm does not move
                         current_eef_subtask_trajectories[eef_name].append(
@@ -923,9 +1125,15 @@ class DataGenerator:
                     else:
                         current_eef_subtask_step_indices[eef_name] = None
                         current_eef_subtask_indices[eef_name] += 1
+
             # Check if all eef_subtasks_done values are True
             if all(eef_subtasks_done.values()):
                 break
+
+        # clean up termination signals
+        # print(f"cleaning up env_termination signals for env {env_id}")
+        if env_id in self.env.should_terminate:
+            self.env.should_terminate[env_id] = False
 
         # Merge numpy arrays
         if len(generated_actions) > 0:
@@ -933,7 +1141,10 @@ class DataGenerator:
 
         # Set success to the recorded episode data and export to file
         self.env.recorder_manager.set_success_to_episodes(
-            env_id_tensor, torch.tensor([[generated_success]], dtype=torch.bool, device=self.env.device)
+            env_id_tensor,
+            torch.tensor(
+                [[generated_success]], dtype=torch.bool, device=self.env.device
+            ),
         )
         if export_demo:
             self.env.recorder_manager.export_episodes(env_id_tensor)
@@ -972,7 +1183,11 @@ class DataGenerator:
         planned_poses = motion_planner.get_planned_poses()
 
         for planned_pose in planned_poses:
-            waypoint = Waypoint(pose=planned_pose, gripper_action=gripper_action, noise=motion_noise_scale)
+            waypoint = Waypoint(
+                pose=planned_pose,
+                gripper_action=gripper_action,
+                noise=motion_noise_scale,
+            )
             waypoints.append(waypoint)
 
         return waypoints

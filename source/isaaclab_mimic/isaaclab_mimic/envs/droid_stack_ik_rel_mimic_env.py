@@ -15,6 +15,9 @@ class DroidCubeStackIKRelMimicEnv(ManagerBasedRLMimicEnv):
     Isaac Lab Mimic environment wrapper class for Droid Cube Stack IK Rel env.
     """
 
+    # should terminate (used for data generation)
+    should_terminate = dict[int, bool]()
+
     def get_robot_eef_pose(
         self, eef_name: str, env_ids: Sequence[int] | None = None
     ) -> torch.Tensor:

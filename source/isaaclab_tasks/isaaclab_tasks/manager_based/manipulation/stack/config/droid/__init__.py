@@ -38,7 +38,7 @@ gym.register(
 )
 
 gym.register(
-    id="Isaac-Stack-Cube-Droid-Visuomotor-v0",
+    id="Isaac-Stack-Cube-Droid-Sim-v0",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     kwargs={
         "env_cfg_entry_point": stack_joint_pos_sim_env_cfg.DroidCubeStackSimEnvCfg,
@@ -51,7 +51,7 @@ gym.register(
 ##
 
 gym.register(
-    id="Isaac-Stack-Cube-Droid-Visuomotor-ID-v0",
+    id="Isaac-Stack-Cube-Droid-Visuomotor-v0",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     kwargs={
         "env_cfg_entry_point": stack_joint_pos_visuomotor_env_cfg.DroidCubeStackVisuomotorEnvCfg,
