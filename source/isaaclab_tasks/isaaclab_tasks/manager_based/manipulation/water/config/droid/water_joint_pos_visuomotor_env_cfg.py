@@ -104,7 +104,7 @@ class EventCfg:
             ],
             "default_intensity": 1500.0,
             "default_color": (0.75, 0.75, 0.75),
-            "default_texture": f"{NVIDIA_NUCLEUS_DIR}/Assets/Skies/Indoor/small_empty_house_4k.hdr",
+            "default_texture": f"{NVIDIA_NUCLEUS_DIR}/Assets/Skies/Studio/photo_studio_01_4k.hdr",
         },
     )
 
@@ -268,6 +268,7 @@ class DroidWaterJointPosVisuomotorEnvCfg(WaterEnvCfg):
                 focus_distance=28.0,
                 horizontal_aperture=5.376,
                 vertical_aperture=3.024,
+                clipping_range=(1e-4, 5),
             ),
             offset=CameraCfg.OffsetCfg(
                 pos=(0.05, 0.57, 0.66),

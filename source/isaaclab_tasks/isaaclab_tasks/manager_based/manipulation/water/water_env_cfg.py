@@ -256,7 +256,7 @@ class WaterEnvCfg(ManagerBasedRLEnvCfg):
 
     # Scene settings
     scene: WaterSceneCfg = WaterSceneCfg(
-        num_envs=4096, env_spacing=2.5, replicate_physics=False
+        num_envs=4096, env_spacing=25, replicate_physics=False
     )
     # Basic settings
     observations: ObservationsCfg = ObservationsCfg()
