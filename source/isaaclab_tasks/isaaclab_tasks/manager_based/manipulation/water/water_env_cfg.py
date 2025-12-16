@@ -295,7 +295,7 @@ class WaterEnvCfg(ManagerBasedRLEnvCfg):
         # simulation settings
         self.sim.dt = 1 / (6 * 15)  # control frequency: 15Hz, decimation: 6
         # self.sim.render_interval = self.decimation
-        self.sim.render_interval = 6
+        self.sim.render_interval = self.decimation
 
         self.rerender_on_reset = True
         self.sim.render.antialiasing_mode = "OFF"  # disable dlss
