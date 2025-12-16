@@ -21,6 +21,7 @@ from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.sensors.frame_transformer.frame_transformer_cfg import FrameTransformerCfg
 from isaaclab.sim.spawners.from_files.from_files_cfg import GroundPlaneCfg, UsdFileCfg
 from isaaclab.utils import configclass
+from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 
 from . import mdp
 
@@ -71,6 +72,17 @@ class WaterSceneCfg(InteractiveSceneCfg):
             ),
         ),
     )
+
+    # # Table
+    # robot_table = AssetBaseCfg(
+    #     prim_path="{ENV_REGEX_NS}/Table",
+    #     init_state=AssetBaseCfg.InitialStateCfg(
+    #         pos=[-0.35, 0, 0], rot=[0.707, 0, 0, 0.707]
+    #     ),
+    #     spawn=UsdFileCfg(
+    #         usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/SeattleLabTable/table_instanceable.usd"
+    #     ),
+    # )
 
     cup = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/cup",
@@ -282,7 +294,11 @@ class WaterEnvCfg(ManagerBasedRLEnvCfg):
         self.episode_length_s = 30.0
         # simulation settings
         self.sim.dt = 1 / (6 * 15)  # control frequency: 15Hz, decimation: 6
-        self.sim.render_interval = 2
+        # self.sim.render_interval = self.decimation
+        self.sim.render_interval = 6
+
+        self.rerender_on_reset = True
+        self.sim.render.antialiasing_mode = "OFF"  # disable dlss
 
         self.sim.physx.bounce_threshold_velocity = 0.2
         self.sim.physx.bounce_threshold_velocity = 0.01

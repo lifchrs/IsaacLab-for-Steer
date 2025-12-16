@@ -874,6 +874,8 @@ def last_droid_action(env: ManagerBasedEnv) -> torch.Tensor:
     gripper_action_term = env.action_manager.get_term("gripper_action")
     # Check if this is an IK action that has joint_pos_des (joint position targets)
     arm_joint_pos_des = getattr(arm_action_term, "joint_pos_des", None)
+    if arm_joint_pos_des is None:
+        arm_joint_pos_des = joint_pos(env)[:, :7]
     gripper_action = gripper_action_term.raw_actions
 
     droid_action = torch.cat([arm_joint_pos_des, gripper_action], dim=-1)

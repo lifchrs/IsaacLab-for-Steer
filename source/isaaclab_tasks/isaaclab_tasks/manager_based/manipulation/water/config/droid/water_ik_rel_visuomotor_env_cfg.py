@@ -33,8 +33,8 @@ class DroidWaterIkRelVisuomotorEnvCfg(
             ),
         )
 
-        # change camera resolutions to save memory
-        self.scene.table_cam.height = 720 / 4
-        self.scene.table_cam.width = 1280 / 4
-        self.scene.wrist_cam.height = 720 / 4
-        self.scene.wrist_cam.width = 1280 / 4
+        # # change camera resolutions to save memory
+        # self.scene.table_cam.height = 720 / 4
+        # self.scene.table_cam.width = 1280 / 4
+        # self.scene.wrist_cam.height = 720 / 4
+        # self.scene.wrist_cam.width = 1280 / 4

@@ -296,9 +296,9 @@ class DroidWaterJointPosVisuomotorEnvCfg(WaterEnvCfg):
             ),
         )
 
-        # Set settings for camera rendering
-        self.rerender_on_reset = True
-        self.sim.render.antialiasing_mode = "OFF"  # disable dlss
+        # # Set settings for camera rendering
+        # self.rerender_on_reset = True
+        # self.sim.render.antialiasing_mode = "OFF"  # disable dlss
 
         # List of image observations in policy observations
         self.image_obs_list = ["table_cam", "wrist_cam"]

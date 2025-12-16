@@ -57,6 +57,10 @@ from .droid_water_ik_rel_visuomotor_mimic_env_cfg import (
     DroidWaterIKRelVisuomotorMimicEnvCfg,
 )
 
+from .droid_water_joint_pos_visuomotor_mimic_env_cfg import (
+    DroidWaterJointPosVisuomotorMimicEnvCfg,
+)
+
 ##
 # Inverse Kinematics - Relative Pose Control
 ##
@@ -294,9 +298,8 @@ gym.register(
     disable_env_checker=True,
 )
 
-
 ##
-# Droid Water with IK - Relative Pose Control
+# Droid Water
 ##
 
 gym.register(
@@ -304,6 +307,16 @@ gym.register(
     entry_point="isaaclab_mimic.envs:DroidWaterIKRelMimicEnv",
     kwargs={
         "env_cfg_entry_point": droid_water_ik_rel_visuomotor_mimic_env_cfg.DroidWaterIKRelVisuomotorMimicEnvCfg,
+    },
+    disable_env_checker=True,
+)
+
+
+gym.register(
+    id="Isaac-Water-Droid-Joint-Pos-Visuomotor-Mimic-v0",
+    entry_point="isaaclab_mimic.envs:DroidWaterIKRelMimicEnv",
+    kwargs={
+        "env_cfg_entry_point": droid_water_joint_pos_visuomotor_mimic_env_cfg.DroidWaterJointPosVisuomotorMimicEnvCfg,
     },
     disable_env_checker=True,
 )
