@@ -61,6 +61,11 @@ from .droid_water_joint_pos_visuomotor_mimic_env_cfg import (
     DroidWaterJointPosVisuomotorMimicEnvCfg,
 )
 
+from .droid_bread_ik_rel_mimic_env import DroidBreadIKRelMimicEnv
+from .droid_bread_ik_rel_visuomotor_mimic_env_cfg import (
+    DroidBreadIkRelVisuomotorMimicEnvCfg,
+)
+
 ##
 # Inverse Kinematics - Relative Pose Control
 ##
@@ -317,6 +322,19 @@ gym.register(
     entry_point="isaaclab_mimic.envs:DroidWaterIKRelMimicEnv",
     kwargs={
         "env_cfg_entry_point": droid_water_joint_pos_visuomotor_mimic_env_cfg.DroidWaterJointPosVisuomotorMimicEnvCfg,
+    },
+    disable_env_checker=True,
+)
+
+##
+# Droid Bread
+##
+
+gym.register(
+    id="Isaac-Bread-Droid-IK-Rel-Visuomotor-Mimic-v0",
+    entry_point="isaaclab_mimic.envs:DroidBreadIKRelMimicEnv",
+    kwargs={
+        "env_cfg_entry_point": droid_bread_ik_rel_visuomotor_mimic_env_cfg.DroidBreadIkRelVisuomotorMimicEnvCfg,
     },
     disable_env_checker=True,
 )
