@@ -107,43 +107,30 @@ def randomize_scene_lighting_domelight(
     intensity_range: tuple[float, float],
     color_variation: float,
     textures: list[str],
-    default_intensity: float = 3000.0,
     default_color: tuple[float, float, float] = (0.75, 0.75, 0.75),
-    default_texture: str = "",
     asset_cfg: SceneEntityCfg = SceneEntityCfg("light"),
 ):
     asset: AssetBase = env.scene[asset_cfg.name]
     light_prim = asset.prims[0]
 
     intensity_attr = light_prim.GetAttribute("inputs:intensity")
-    intensity_attr.Set(default_intensity)
-
     color_attr = light_prim.GetAttribute("inputs:color")
-    color_attr.Set(default_color)
-
     texture_file_attr = light_prim.GetAttribute("inputs:texture:file")
-    texture_file_attr.Set(default_texture)
 
-    if not hasattr(env.cfg, "eval_mode") or not env.cfg.eval_mode:
-        return
+    # Sample new light intensity
+    new_intensity = random.uniform(intensity_range[0], intensity_range[1])
+    # Set light intensity to light prim
+    intensity_attr.Set(new_intensity)
 
-    if env.cfg.eval_type in ["light_intensity", "all"]:
-        # Sample new light intensity
-        new_intensity = random.uniform(intensity_range[0], intensity_range[1])
-        # Set light intensity to light prim
-        intensity_attr.Set(new_intensity)
+    # Sample new light color
+    new_color = sample_random_color(base=default_color, variation=color_variation)
+    # Set light color to light prim
+    color_attr.Set(new_color)
 
-    if env.cfg.eval_type in ["light_color", "all"]:
-        # Sample new light color
-        new_color = sample_random_color(base=default_color, variation=color_variation)
-        # Set light color to light prim
-        color_attr.Set(new_color)
-
-    if env.cfg.eval_type in ["light_texture", "all"]:
-        # Sample new light texture (background)
-        new_texture = random.sample(textures, 1)[0]
-        # Set light texture to light prim
-        texture_file_attr.Set(new_texture)
+    # Sample new light texture (background)
+    new_texture = random.sample(textures, 1)[0]
+    # Set light texture to light prim
+    texture_file_attr.Set(new_texture)
 
 
 def sample_object_poses(

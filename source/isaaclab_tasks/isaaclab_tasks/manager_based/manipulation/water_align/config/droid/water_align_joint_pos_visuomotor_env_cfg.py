@@ -16,6 +16,7 @@ from isaaclab.sensors import FrameTransformerCfg
 from isaaclab.sensors.frame_transformer.frame_transformer_cfg import OffsetCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, NVIDIA_NUCLEUS_DIR
+from isaaclab.utils.noise import GaussianNoiseCfg
 
 from isaaclab_tasks.manager_based.manipulation.water_align import mdp
 from isaaclab_tasks.manager_based.manipulation.water_align.mdp import water_events
@@ -70,7 +71,7 @@ class EventCfg:
         params={
             "pose_range": {
                 "x": (0.38, 0.5),
-                "y": (-0.3, 0.4),
+                "y": (-0.38, 0.32),
                 "z": (ASSET_INIT_POS[2], ASSET_INIT_POS[2]),
                 "yaw": (-0.5, 0.5),
             },
@@ -87,12 +88,9 @@ class EventCfg:
         func=water_events.randomize_scene_lighting_domelight,
         mode="reset",
         params={
-            "intensity_range": (1500.0, 10000.0),
-            "color_variation": 0.4,
+            "intensity_range": (1500.0, 6000.0),
+            "color_variation": 0.1,
             "textures": [
-                f"{NVIDIA_NUCLEUS_DIR}/Assets/Skies/Cloudy/abandoned_parking_4k.hdr",
-                f"{NVIDIA_NUCLEUS_DIR}/Assets/Skies/Cloudy/evening_road_01_4k.hdr",
-                f"{NVIDIA_NUCLEUS_DIR}/Assets/Skies/Cloudy/lakeside_4k.hdr",
                 f"{NVIDIA_NUCLEUS_DIR}/Assets/Skies/Indoor/autoshop_01_4k.hdr",
                 f"{NVIDIA_NUCLEUS_DIR}/Assets/Skies/Indoor/carpentry_shop_01_4k.hdr",
                 f"{NVIDIA_NUCLEUS_DIR}/Assets/Skies/Indoor/hospital_room_4k.hdr",
@@ -102,9 +100,7 @@ class EventCfg:
                 f"{NVIDIA_NUCLEUS_DIR}/Assets/Skies/Indoor/surgery_4k.hdr",
                 f"{NVIDIA_NUCLEUS_DIR}/Assets/Skies/Studio/photo_studio_01_4k.hdr",
             ],
-            "default_intensity": 1500.0,
             "default_color": (0.75, 0.75, 0.75),
-            "default_texture": f"{NVIDIA_NUCLEUS_DIR}/Assets/Skies/Studio/photo_studio_01_4k.hdr",
         },
     )
 
@@ -134,6 +130,7 @@ class ObservationsCfg:
                 "data_type": "rgb",
                 "normalize": False,
             },
+            noise=GaussianNoiseCfg(mean=0.0, std=10.0, operation="add"),
         )
         wrist_cam = ObsTerm(
             func=mdp.image,
@@ -142,10 +139,11 @@ class ObservationsCfg:
                 "data_type": "rgb",
                 "normalize": False,
             },
+            noise=GaussianNoiseCfg(mean=0.0, std=10.0, operation="add"),
         )
 
         def __post_init__(self):
-            self.enable_corruption = False
+            self.enable_corruption = True
             self.concatenate_terms = False
 
     @configclass

@@ -60,14 +60,40 @@ def uniform_noise(data: torch.Tensor, cfg: noise_cfg.UniformNoiseCfg) -> torch.T
     if isinstance(cfg.n_min, torch.Tensor):
         cfg.n_min = cfg.n_min.to(data.device)
 
+    # Convert to float if needed (e.g., for uint8 images)
+    # torch.rand_like requires float tensors
+    original_dtype = data.dtype
+    if not data.dtype.is_floating_point:
+        data = data.float()
+
     if cfg.operation == "add":
-        return data + torch.rand_like(data) * (cfg.n_max - cfg.n_min) + cfg.n_min
+        result = data + torch.rand_like(data) * (cfg.n_max - cfg.n_min) + cfg.n_min
     elif cfg.operation == "scale":
-        return data * (torch.rand_like(data) * (cfg.n_max - cfg.n_min) + cfg.n_min)
+        result = data * (torch.rand_like(data) * (cfg.n_max - cfg.n_min) + cfg.n_min)
     elif cfg.operation == "abs":
-        return torch.rand_like(data) * (cfg.n_max - cfg.n_min) + cfg.n_min
+        result = torch.rand_like(data) * (cfg.n_max - cfg.n_min) + cfg.n_min
     else:
         raise ValueError(f"Unknown operation in noise: {cfg.operation}")
+
+    # Convert back to original dtype if it was an integer type
+    if not original_dtype.is_floating_point:
+        # Get the valid range for the integer type
+        if original_dtype == torch.uint8:
+            result = result.clamp(0, 255).round()
+        elif original_dtype == torch.int8:
+            result = result.clamp(-128, 127).round()
+        elif original_dtype == torch.int16:
+            result = result.clamp(-32768, 32767).round()
+        elif original_dtype == torch.int32:
+            result = result.clamp(-2147483648, 2147483647).round()
+        elif original_dtype == torch.int64:
+            result = result.clamp(-9223372036854775808, 9223372036854775807).round()
+        else:
+            # For other integer types, just round
+            result = result.round()
+        result = result.to(original_dtype)
+
+    return result
 
 
 def gaussian_noise(data: torch.Tensor, cfg: noise_cfg.GaussianNoiseCfg) -> torch.Tensor:
@@ -88,14 +114,40 @@ def gaussian_noise(data: torch.Tensor, cfg: noise_cfg.GaussianNoiseCfg) -> torch
     if isinstance(cfg.std, torch.Tensor):
         cfg.std = cfg.std.to(data.device)
 
+    # Convert to float if needed (e.g., for uint8 images)
+    # torch.randn_like requires float tensors
+    original_dtype = data.dtype
+    if not data.dtype.is_floating_point:
+        data = data.float()
+
     if cfg.operation == "add":
-        return data + cfg.mean + cfg.std * torch.randn_like(data)
+        result = data + cfg.mean + cfg.std * torch.randn_like(data)
     elif cfg.operation == "scale":
-        return data * (cfg.mean + cfg.std * torch.randn_like(data))
+        result = data * (cfg.mean + cfg.std * torch.randn_like(data))
     elif cfg.operation == "abs":
-        return cfg.mean + cfg.std * torch.randn_like(data)
+        result = cfg.mean + cfg.std * torch.randn_like(data)
     else:
         raise ValueError(f"Unknown operation in noise: {cfg.operation}")
+
+    # Convert back to original dtype if it was an integer type
+    if not original_dtype.is_floating_point:
+        # Get the valid range for the integer type
+        if original_dtype == torch.uint8:
+            result = result.clamp(0, 255).round()
+        elif original_dtype == torch.int8:
+            result = result.clamp(-128, 127).round()
+        elif original_dtype == torch.int16:
+            result = result.clamp(-32768, 32767).round()
+        elif original_dtype == torch.int32:
+            result = result.clamp(-2147483648, 2147483647).round()
+        elif original_dtype == torch.int64:
+            result = result.clamp(-9223372036854775808, 9223372036854775807).round()
+        else:
+            # For other integer types, just round
+            result = result.round()
+        result = result.to(original_dtype)
+
+    return result
 
 
 ##
@@ -106,7 +158,9 @@ def gaussian_noise(data: torch.Tensor, cfg: noise_cfg.GaussianNoiseCfg) -> torch
 class NoiseModel:
     """Base class for noise models."""
 
-    def __init__(self, noise_model_cfg: noise_cfg.NoiseModelCfg, num_envs: int, device: str):
+    def __init__(
+        self, noise_model_cfg: noise_cfg.NoiseModelCfg, num_envs: int, device: str
+    ):
         """Initialize the noise model.
 
         Args:
@@ -139,7 +193,9 @@ class NoiseModel:
         Returns:
             The data with the noise applied. Shape is the same as the input data.
         """
-        return self._noise_model_cfg.noise_cfg.func(data, self._noise_model_cfg.noise_cfg)
+        return self._noise_model_cfg.noise_cfg.func(
+            data, self._noise_model_cfg.noise_cfg
+        )
 
 
 class NoiseModelWithAdditiveBias(NoiseModel):
@@ -148,7 +204,12 @@ class NoiseModelWithAdditiveBias(NoiseModel):
     The bias term is sampled from a the specified distribution on reset.
     """
 
-    def __init__(self, noise_model_cfg: noise_cfg.NoiseModelWithAdditiveBiasCfg, num_envs: int, device: str):
+    def __init__(
+        self,
+        noise_model_cfg: noise_cfg.NoiseModelWithAdditiveBiasCfg,
+        num_envs: int,
+        device: str,
+    ):
         # initialize parent class
         super().__init__(noise_model_cfg, num_envs, device)
         # store the bias noise configuration
@@ -170,7 +231,9 @@ class NoiseModelWithAdditiveBias(NoiseModel):
         if env_ids is None:
             env_ids = slice(None)
         # reset the bias term
-        self._bias[env_ids] = self._bias_noise_cfg.func(self._bias[env_ids], self._bias_noise_cfg)
+        self._bias[env_ids] = self._bias_noise_cfg.func(
+            self._bias[env_ids], self._bias_noise_cfg
+        )
 
     def __call__(self, data: torch.Tensor) -> torch.Tensor:
         """Apply bias noise to the data.

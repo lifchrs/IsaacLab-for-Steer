@@ -62,14 +62,14 @@ mass_properties = MassPropertiesCfg(
 class VisualizeSceneCfg(InteractiveSceneCfg):
     """Configuration for the water plant scene."""
 
-    # table
-    table = AssetBaseCfg(
-        prim_path="{ENV_REGEX_NS}/table",
-        init_state=ASSET_INIT_STATE,
-        spawn=UsdFileCfg(
-            usd_path=os.path.abspath(os.path.join(ASSET_DIR, "table.usd")),
-        ),
-    )
+    # # table
+    # table = AssetBaseCfg(
+    #     prim_path="{ENV_REGEX_NS}/table",
+    #     init_state=ASSET_INIT_STATE,
+    #     spawn=UsdFileCfg(
+    #         usd_path=os.path.abspath(os.path.join(ASSET_DIR, "table.usd")),
+    #     ),
+    # )
 
     # lights
     light = AssetBaseCfg(
