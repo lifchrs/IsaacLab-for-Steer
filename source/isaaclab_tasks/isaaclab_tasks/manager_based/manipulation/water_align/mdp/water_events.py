@@ -206,6 +206,63 @@ def randomize_object_pose(
             )
 
 
+def randomize_table_pose(
+    env: ManagerBasedEnv,
+    env_ids: torch.Tensor,
+    pose_range: dict[str, tuple[float, float]],
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("table"),
+):
+    """Randomize the pose of a kinematic rigid body asset (e.g., table).
+
+    This function works with RigidObjectCfg assets that have kinematic_enabled=True.
+
+    Args:
+        env: The environment object.
+        env_ids: The indices of the environments to randomize.
+        pose_range: Dictionary with keys 'x', 'y', 'z', 'roll', 'pitch', 'yaw'
+            specifying (min, max) ranges for pose sampling.
+        asset_cfg: The scene entity configuration for the asset. Defaults to "table".
+    """
+    if env_ids is None:
+        return
+
+    # Get the RigidObject asset from the scene
+    asset = env.scene[asset_cfg.name]
+
+    # Sample poses for all environments at once
+    num_envs = len(env_ids)
+    positions = torch.zeros(num_envs, 3, device=env.device)
+    euler_angles = torch.zeros(num_envs, 3, device=env.device)
+
+    for i, axis in enumerate(["x", "y", "z"]):
+        if axis in pose_range:
+            min_val, max_val = pose_range[axis]
+            positions[:, i] = (
+                torch.rand(num_envs, device=env.device) * (max_val - min_val) + min_val
+            )
+
+    for i, axis in enumerate(["roll", "pitch", "yaw"]):
+        if axis in pose_range:
+            min_val, max_val = pose_range[axis]
+            euler_angles[:, i] = (
+                torch.rand(num_envs, device=env.device) * (max_val - min_val) + min_val
+            )
+
+    # Add environment origins to positions
+    positions = positions + env.scene.env_origins[env_ids, :3]
+
+    # Convert euler angles to quaternions
+    orientations = math_utils.quat_from_euler_xyz(
+        euler_angles[:, 0], euler_angles[:, 1], euler_angles[:, 2]
+    )
+
+    # Write pose to simulation (works for RigidObject with kinematic_enabled=True)
+    asset.write_root_pose_to_sim(
+        torch.cat([positions, orientations], dim=-1),
+        env_ids=env_ids,
+    )
+
+
 def randomize_rigid_objects_in_focus(
     env: ManagerBasedEnv,
     env_ids: torch.Tensor,
@@ -257,3 +314,90 @@ def randomize_rigid_objects_in_focus(
             )
 
         env.rigid_objects_in_focus.append(selected_ids)
+
+
+def randomize_camera_offset(
+    env: ManagerBasedEnv,
+    env_ids: torch.Tensor,
+    position_range: dict[str, tuple[float, float]],
+    rotation_range: dict[str, tuple[float, float]] | None = None,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("table_cam"),
+):
+    """Randomize camera offset by applying small perturbations to position and rotation.
+
+    This event adds random offsets to the camera's world pose. The offsets are sampled
+    uniformly from the specified ranges for each axis.
+
+    Args:
+        env: The environment object.
+        env_ids: The indices of the environments to randomize.
+        position_range: Dictionary with keys 'x', 'y', 'z' specifying (min, max) offset ranges in meters.
+        rotation_range: Optional dictionary with keys 'roll', 'pitch', 'yaw' specifying (min, max)
+            offset ranges in radians. Defaults to None (no rotation randomization).
+        asset_cfg: The scene entity configuration for the camera. Defaults to "table_cam".
+    """
+    if env_ids is None:
+        return
+
+    # Get camera sensor from scene
+    camera = env.scene[asset_cfg.name]
+
+    # Get current camera world poses
+    current_pos = camera.data.pos_w.clone()
+    current_quat = camera.data.quat_w_world.clone()
+
+    # Sample position offsets
+    pos_offset = torch.zeros_like(current_pos)
+    for i, axis in enumerate(["x", "y", "z"]):
+        if axis in position_range:
+            min_val, max_val = position_range[axis]
+            pos_offset[env_ids, i] = (
+                torch.rand(len(env_ids), device=env.device) * (max_val - min_val)
+                + min_val
+            )
+
+    # Apply position offset
+    new_pos = current_pos.clone()
+    new_pos[env_ids] = current_pos[env_ids] + pos_offset[env_ids]
+
+    # Sample rotation offsets if specified
+    new_quat = current_quat.clone()
+    if rotation_range is not None:
+        roll_offset = torch.zeros(len(env_ids), device=env.device)
+        pitch_offset = torch.zeros(len(env_ids), device=env.device)
+        yaw_offset = torch.zeros(len(env_ids), device=env.device)
+
+        if "roll" in rotation_range:
+            min_val, max_val = rotation_range["roll"]
+            roll_offset = (
+                torch.rand(len(env_ids), device=env.device) * (max_val - min_val)
+                + min_val
+            )
+        if "pitch" in rotation_range:
+            min_val, max_val = rotation_range["pitch"]
+            pitch_offset = (
+                torch.rand(len(env_ids), device=env.device) * (max_val - min_val)
+                + min_val
+            )
+        if "yaw" in rotation_range:
+            min_val, max_val = rotation_range["yaw"]
+            yaw_offset = (
+                torch.rand(len(env_ids), device=env.device) * (max_val - min_val)
+                + min_val
+            )
+
+        # Convert euler offsets to quaternion
+        offset_quat = math_utils.quat_from_euler_xyz(
+            roll_offset, pitch_offset, yaw_offset
+        )
+
+        # Apply rotation offset (multiply quaternions)
+        new_quat[env_ids] = math_utils.quat_mul(current_quat[env_ids], offset_quat)
+
+    # Set new camera poses
+    camera.set_world_poses(
+        positions=new_pos[env_ids],
+        orientations=new_quat[env_ids],
+        env_ids=env_ids.tolist(),
+        convention="world",
+    )

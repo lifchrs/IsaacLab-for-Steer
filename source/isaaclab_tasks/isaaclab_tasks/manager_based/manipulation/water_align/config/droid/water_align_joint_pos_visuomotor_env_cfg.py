@@ -23,6 +23,7 @@ from isaaclab_tasks.manager_based.manipulation.water_align.mdp import water_even
 from isaaclab_tasks.manager_based.manipulation.water_align.water_align_env_cfg import (
     WaterAlignEnvCfg,
     ASSET_INIT_POS,
+    TABLE_INIT_POS,
 )
 
 from isaaclab_assets.robots.droid import DROID_CFG  # isort: skip
@@ -71,7 +72,7 @@ class EventCfg:
         params={
             "pose_range": {
                 "x": (0.38, 0.5),
-                "y": (-0.38, 0.32),
+                "y": (-0.38, 0.27),
                 "z": (ASSET_INIT_POS[2], ASSET_INIT_POS[2]),
                 "yaw": (-0.5, 0.5),
             },
@@ -88,9 +89,12 @@ class EventCfg:
         func=water_events.randomize_scene_lighting_domelight,
         mode="reset",
         params={
-            "intensity_range": (1500.0, 6000.0),
-            "color_variation": 0.1,
+            "intensity_range": (1000.0, 2000.0),
+            "color_variation": 0.07,
             "textures": [
+                f"{NVIDIA_NUCLEUS_DIR}/Assets/Skies/Cloudy/abandoned_parking_4k.hdr",
+                f"{NVIDIA_NUCLEUS_DIR}/Assets/Skies/Cloudy/evening_road_01_4k.hdr",
+                f"{NVIDIA_NUCLEUS_DIR}/Assets/Skies/Cloudy/lakeside_4k.hdr",
                 f"{NVIDIA_NUCLEUS_DIR}/Assets/Skies/Indoor/autoshop_01_4k.hdr",
                 f"{NVIDIA_NUCLEUS_DIR}/Assets/Skies/Indoor/carpentry_shop_01_4k.hdr",
                 f"{NVIDIA_NUCLEUS_DIR}/Assets/Skies/Indoor/hospital_room_4k.hdr",
@@ -101,6 +105,40 @@ class EventCfg:
                 f"{NVIDIA_NUCLEUS_DIR}/Assets/Skies/Studio/photo_studio_01_4k.hdr",
             ],
             "default_color": (0.75, 0.75, 0.75),
+        },
+    )
+
+    randomize_table_cam_offset = EventTerm(
+        func=water_events.randomize_camera_offset,
+        mode="reset",
+        params={
+            "position_range": {
+                "x": (-0.015, 0.015),
+                "y": (-0.015, 0.015),
+                "z": (-0.015, 0.015),
+            },
+            "rotation_range": {
+                "roll": (-0.03, 0.03),
+                "pitch": (-0.03, 0.03),
+                "yaw": (-0.03, 0.03),
+            },
+            "asset_cfg": SceneEntityCfg("table_cam"),
+        },
+    )
+
+    randomize_table_pose = EventTerm(
+        func=water_events.randomize_table_pose,
+        mode="reset",
+        params={
+            "pose_range": {
+                "x": (TABLE_INIT_POS[0] - 0.05, TABLE_INIT_POS[0] + 0.05),
+                "y": (TABLE_INIT_POS[1] - 0.05, TABLE_INIT_POS[1] + 0.05),
+                "z": (TABLE_INIT_POS[2] - 0.04, TABLE_INIT_POS[2] + 0.04),
+                "roll": (0.0, 0.0),
+                "pitch": (0.0, 0.0),
+                "yaw": (-0.05, 0.05),
+            },
+            "asset_cfg": SceneEntityCfg("table"),
         },
     )
 
@@ -130,7 +168,7 @@ class ObservationsCfg:
                 "data_type": "rgb",
                 "normalize": False,
             },
-            noise=GaussianNoiseCfg(mean=0.0, std=10.0, operation="add"),
+            noise=GaussianNoiseCfg(mean=0.0, std=70.0, operation="add"),
         )
         wrist_cam = ObsTerm(
             func=mdp.image,
@@ -139,7 +177,7 @@ class ObservationsCfg:
                 "data_type": "rgb",
                 "normalize": False,
             },
-            noise=GaussianNoiseCfg(mean=0.0, std=10.0, operation="add"),
+            noise=GaussianNoiseCfg(mean=0.0, std=70.0, operation="add"),
         )
 
         def __post_init__(self):

@@ -30,7 +30,7 @@ ASSET_DIR = os.path.join(
     "../../../../../../../diffusion_policy/reconstruction/asset/water_world",
 )
 
-TABLE_INIT_POS = [0.33, -0.12, -0.05]
+TABLE_INIT_POS = [0.33, -0.12, -0.10]
 ASSET_INIT_POS = [0.25, 0.0, -0.05]
 ASSET_INIT_ROT = [1.0, 0.0, 0.0, 0.0]
 
@@ -54,6 +54,11 @@ rigid_body_properties = RigidBodyPropertiesCfg(
     disable_gravity=False,
 )
 
+kinematic_body_properties = RigidBodyPropertiesCfg(
+    kinematic_enabled=True,
+    disable_gravity=True,
+)
+
 mass_properties = MassPropertiesCfg(
     mass=0.001,  # Mass in kg
     # Alternative: use density instead of mass
@@ -68,14 +73,15 @@ mass_properties = MassPropertiesCfg(
 class WaterAlignSceneCfg(InteractiveSceneCfg):
     """Configuration for the water plant scene aligned with the real-world camera."""
 
-    # table
-    table = AssetBaseCfg(
+    # table (kinematic rigid body to allow pose randomization with collision)
+    table = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/table",
         init_state=TABLE_INIT_STATE,
         spawn=UsdFileCfg(
             usd_path=os.path.abspath(
-                os.path.join(ASSET_DIR.rsplit("/", 1)[0], "table.usd")
+                os.path.join(ASSET_DIR.rsplit("/", 1)[0], "table_move.usd")
             ),
+            rigid_props=kinematic_body_properties,
         ),
     )
 
