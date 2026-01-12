@@ -30,7 +30,7 @@ ASSET_DIR = os.path.join(
     "../../../../../../../diffusion_policy/reconstruction/asset/water_world",
 )
 
-TABLE_INIT_POS = [0.33, -0.12, -0.10]
+TABLE_INIT_POS = [0.38, -0.12, -0.10]
 ASSET_INIT_POS = [0.25, 0.0, -0.05]
 ASSET_INIT_ROT = [1.0, 0.0, 0.0, 0.0]
 
@@ -72,6 +72,18 @@ mass_properties = MassPropertiesCfg(
 @configclass
 class WaterAlignSceneCfg(InteractiveSceneCfg):
     """Configuration for the water plant scene aligned with the real-world camera."""
+
+    # Robot Table
+    robot_table = AssetBaseCfg(
+        prim_path="{ENV_REGEX_NS}/RobotTable",
+        init_state=AssetBaseCfg.InitialStateCfg(
+            pos=[-0.3, 0, 0], rot=[0.707, 0, 0, 0.707]
+        ),
+        spawn=UsdFileCfg(
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/SeattleLabTable/table_instanceable.usd",
+            scale=(0.6, 1.0, 1.0),
+        ),
+    )
 
     # table (kinematic rigid body to allow pose randomization with collision)
     table = RigidObjectCfg(

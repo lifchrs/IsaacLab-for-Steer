@@ -263,6 +263,97 @@ def randomize_table_pose(
     )
 
 
+def randomize_table_and_objects_pose(
+    env: ManagerBasedEnv,
+    env_ids: torch.Tensor,
+    table_pose_range: dict[str, tuple[float, float]],
+    object_pose_range: dict[str, tuple[float, float]],
+    table_cfg: SceneEntityCfg = SceneEntityCfg("table"),
+    object_cfgs: list[SceneEntityCfg] = [],
+    min_separation: float = 0.0,
+    max_sample_tries: int = 5000,
+):
+    """Randomize table pose and object poses together, ensuring objects share the table's z value.
+
+    This function first samples the table pose (including z), then places objects on the table
+    with the same z value as the sampled table position.
+
+    Args:
+        env: The environment object.
+        env_ids: The indices of the environments to randomize.
+        table_pose_range: Dictionary with keys 'x', 'y', 'z', 'roll', 'pitch', 'yaw'
+            specifying (min, max) ranges for table pose sampling.
+        object_pose_range: Dictionary with keys 'x', 'y', 'yaw' specifying (min, max)
+            ranges for object pose sampling. The 'z' value will be inherited from the table.
+        table_cfg: The scene entity configuration for the table.
+        object_cfgs: List of scene entity configurations for objects to place on the table.
+        min_separation: Minimum separation distance between objects.
+        max_sample_tries: Maximum attempts to sample valid object positions.
+    """
+    if env_ids is None:
+        return
+
+    # Randomize poses in each environment independently
+    for cur_env in env_ids.tolist():
+        # === Sample table pose ===
+        table_pose = [
+            random.uniform(
+                table_pose_range.get(key, (0.0, 0.0))[0],
+                table_pose_range.get(key, (0.0, 0.0))[1],
+            )
+            for key in ["x", "y", "z", "roll", "pitch", "yaw"]
+        ]
+
+        # Get the sampled table z value (this will be used for all objects)
+        table_z = table_pose[2]
+
+        # Set table pose
+        table_asset = env.scene[table_cfg.name]
+        table_pos = torch.tensor([table_pose[:3]], device=env.device)
+        table_pos = table_pos + env.scene.env_origins[cur_env, :3]
+        table_orient = math_utils.quat_from_euler_xyz(
+            torch.tensor([table_pose[3]], device=env.device),
+            torch.tensor([table_pose[4]], device=env.device),
+            torch.tensor([table_pose[5]], device=env.device),
+        )
+        table_asset.write_root_pose_to_sim(
+            torch.cat([table_pos, table_orient], dim=-1),
+            env_ids=torch.tensor([cur_env], device=env.device),
+        )
+
+        # === Sample object poses with same z as table ===
+        # Override object z range to use the sampled table z
+        object_pose_range_with_table_z = object_pose_range.copy()
+        object_pose_range_with_table_z["z"] = (table_z, table_z)
+
+        pose_list = sample_object_poses(
+            num_objects=len(object_cfgs),
+            min_separation=min_separation,
+            pose_range=object_pose_range_with_table_z,
+            max_sample_tries=max_sample_tries,
+        )
+
+        # Randomize pose for each object
+        for i in range(len(object_cfgs)):
+            asset_cfg = object_cfgs[i]
+            asset = env.scene[asset_cfg.name]
+
+            # Write pose to simulation
+            pose_tensor = torch.tensor([pose_list[i]], device=env.device)
+            positions = pose_tensor[:, 0:3] + env.scene.env_origins[cur_env, 0:3]
+            orientations = math_utils.quat_from_euler_xyz(
+                pose_tensor[:, 3], pose_tensor[:, 4], pose_tensor[:, 5]
+            )
+            asset.write_root_pose_to_sim(
+                torch.cat([positions, orientations], dim=-1),
+                env_ids=torch.tensor([cur_env], device=env.device),
+            )
+            asset.write_root_velocity_to_sim(
+                torch.zeros(1, 6, device=env.device),
+                env_ids=torch.tensor([cur_env], device=env.device),
+            )
+
+
 def randomize_rigid_objects_in_focus(
     env: ManagerBasedEnv,
     env_ids: torch.Tensor,

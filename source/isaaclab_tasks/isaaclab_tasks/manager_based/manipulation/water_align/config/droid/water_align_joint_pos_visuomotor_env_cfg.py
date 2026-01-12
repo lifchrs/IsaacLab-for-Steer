@@ -66,22 +66,30 @@ class EventCfg:
         },
     )
 
-    randomize_object_positions = EventTerm(
-        func=water_events.randomize_object_pose,
+    randomize_table_and_objects = EventTerm(
+        func=water_events.randomize_table_and_objects_pose,
         mode="reset",
         params={
-            "pose_range": {
-                "x": (0.38, 0.5),
-                "y": (-0.38, 0.27),
-                "z": (ASSET_INIT_POS[2], ASSET_INIT_POS[2]),
+            "table_pose_range": {
+                "x": (TABLE_INIT_POS[0] - 0.025, TABLE_INIT_POS[0] + 0.025),
+                "y": (TABLE_INIT_POS[1] - 0.025, TABLE_INIT_POS[1] + 0.025),
+                "z": (TABLE_INIT_POS[2] - 0.025, TABLE_INIT_POS[2] + 0.025),
+                "roll": (0.0, 0.0),
+                "pitch": (0.0, 0.0),
+                "yaw": (-0.01, 0.01),
+            },
+            "object_pose_range": {
+                "x": (0.38, 0.52),
+                "y": (-0.38, 0.30),
                 "yaw": (-0.5, 0.5),
             },
-            "min_separation": 0.25,
-            "asset_cfgs": [
+            "table_cfg": SceneEntityCfg("table"),
+            "object_cfgs": [
                 SceneEntityCfg("cup"),
                 SceneEntityCfg("plant"),
                 SceneEntityCfg("bowl"),
             ],
+            "min_separation": 0.25,
         },
     )
 
@@ -126,22 +134,6 @@ class EventCfg:
         },
     )
 
-    randomize_table_pose = EventTerm(
-        func=water_events.randomize_table_pose,
-        mode="reset",
-        params={
-            "pose_range": {
-                "x": (TABLE_INIT_POS[0] - 0.05, TABLE_INIT_POS[0] + 0.05),
-                "y": (TABLE_INIT_POS[1] - 0.05, TABLE_INIT_POS[1] + 0.05),
-                "z": (TABLE_INIT_POS[2] - 0.04, TABLE_INIT_POS[2] + 0.04),
-                "roll": (0.0, 0.0),
-                "pitch": (0.0, 0.0),
-                "yaw": (-0.05, 0.05),
-            },
-            "asset_cfg": SceneEntityCfg("table"),
-        },
-    )
-
 
 @configclass
 class ObservationsCfg:
@@ -168,7 +160,7 @@ class ObservationsCfg:
                 "data_type": "rgb",
                 "normalize": False,
             },
-            noise=GaussianNoiseCfg(mean=0.0, std=70.0, operation="add"),
+            noise=GaussianNoiseCfg(mean=0.0, std=15.0, operation="add"),
         )
         wrist_cam = ObsTerm(
             func=mdp.image,
@@ -177,7 +169,7 @@ class ObservationsCfg:
                 "data_type": "rgb",
                 "normalize": False,
             },
-            noise=GaussianNoiseCfg(mean=0.0, std=70.0, operation="add"),
+            noise=GaussianNoiseCfg(mean=0.0, std=15.0, operation="add"),
         )
 
         def __post_init__(self):
@@ -327,9 +319,15 @@ class DroidWaterAlignJointPosVisuomotorEnvCfg(WaterAlignEnvCfg):
             ),
         )
 
-        # # Set settings for camera rendering
-        # self.rerender_on_reset = True
-        # self.sim.render.antialiasing_mode = "OFF"  # disable dlss
+        # Set settings for camera rendering
+        self.rerender_on_reset = True
+        self.sim.render.antialiasing_mode = "OFF"  # disable dlss
+
+        # change camera resolutions to save memory
+        self.scene.table_cam.height = 720 / 4
+        self.scene.table_cam.width = 1280 / 4
+        self.scene.wrist_cam.height = 720 / 4
+        self.scene.wrist_cam.width = 1280 / 4
 
         # List of image observations in policy observations
         self.image_obs_list = ["table_cam", "wrist_cam"]

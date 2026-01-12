@@ -229,7 +229,7 @@ class DroidVisualizeJointPosVisuomotorEnvCfg(VisualizeEnvCfg):
             ),
             offset=CameraCfg.OffsetCfg(
                 pos=(0.004620336834421451, -0.5388594867462788, 0.454018368138419),
-                rot=(0.2595868830, 0.3175587775, 0.7575422903, 0.5078392969),
+                rot=(-0.5078392969, 0.7575422903, -0.3175587775, 0.2595868830),
                 convention="ros",
             ),
         )
