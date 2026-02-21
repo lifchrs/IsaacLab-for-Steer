@@ -70,6 +70,16 @@ from .droid_water_align_ik_rel_visuomotor_mimic_env_cfg import (
     DroidWaterAlignIKRelVisuomotorMimicEnvCfg,
 )
 
+from .droid_block_ik_rel_mimic_env import DroidBlockIKRelMimicEnv
+from .droid_block_ik_rel_visuomotor_mimic_env_cfg import (
+    DroidBlockIKRelVisuomotorMimicEnvCfg,
+)
+
+from .droid_cylinder_ik_rel_mimic_env import DroidCylinderIKRelMimicEnv
+from .droid_cylinder_ik_rel_visuomotor_mimic_env_cfg import (
+    DroidCylinderIKRelVisuomotorMimicEnvCfg,
+)
+
 ##
 # Inverse Kinematics - Relative Pose Control
 ##
@@ -351,6 +361,33 @@ gym.register(
     entry_point="isaaclab_mimic.envs:DroidBreadIKRelMimicEnv",
     kwargs={
         "env_cfg_entry_point": droid_bread_ik_rel_visuomotor_mimic_env_cfg.DroidBreadIkRelVisuomotorMimicEnvCfg,
+    },
+    disable_env_checker=True,
+)
+
+
+##
+# Droid Block
+##
+
+gym.register(
+    id="Isaac-Block-Droid-IK-Rel-Visuomotor-Mimic-v0",
+    entry_point="isaaclab_mimic.envs:DroidBlockIKRelMimicEnv",
+    kwargs={
+        "env_cfg_entry_point": droid_block_ik_rel_visuomotor_mimic_env_cfg.DroidBlockIKRelVisuomotorMimicEnvCfg,
+    },
+    disable_env_checker=True,
+)
+
+##
+# Droid Cylinder
+##
+
+gym.register(
+    id="Isaac-Cylinder-Droid-IK-Rel-Visuomotor-Mimic-v0",
+    entry_point="isaaclab_mimic.envs:DroidCylinderIKRelMimicEnv",
+    kwargs={
+        "env_cfg_entry_point": droid_cylinder_ik_rel_visuomotor_mimic_env_cfg.DroidCylinderIKRelVisuomotorMimicEnvCfg,
     },
     disable_env_checker=True,
 )

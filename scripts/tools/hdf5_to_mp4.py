@@ -32,17 +32,17 @@ import os
 import cv2
 
 # Constants
-DEFAULT_VIDEO_HEIGHT = 704
-DEFAULT_VIDEO_WIDTH = 1280
+DEFAULT_VIDEO_HEIGHT = 720 / 4
+DEFAULT_VIDEO_WIDTH = 1280 / 4
 DEFAULT_INPUT_KEYS = [
     "table_cam",
     "wrist_cam",
-    "table_cam_segmentation",
-    "table_cam_normals",
-    "table_cam_shaded_segmentation",
-    "table_cam_depth",
+    # "table_cam_segmentation",
+    # "table_cam_normals",
+    # "table_cam_shaded_segmentation",
+    # "table_cam_depth",
 ]
-DEFAULT_FRAMERATE = 30
+DEFAULT_FRAMERATE = 15
 LIGHT_SOURCE = np.array([0.0, 0.0, 1.0])
 MIN_DEPTH = 0.0
 MAX_DEPTH = 1.5

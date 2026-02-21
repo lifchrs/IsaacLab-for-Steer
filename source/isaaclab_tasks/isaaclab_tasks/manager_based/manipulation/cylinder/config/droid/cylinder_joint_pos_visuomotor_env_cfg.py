@@ -16,16 +16,16 @@ from isaaclab.sensors import FrameTransformerCfg
 from isaaclab.sensors.frame_transformer.frame_transformer_cfg import OffsetCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, NVIDIA_NUCLEUS_DIR
+from isaaclab.utils.noise import GaussianNoiseCfg
 
-from isaaclab_tasks.manager_based.manipulation.visualize import mdp
-from isaaclab_tasks.manager_based.manipulation.visualize.mdp import visualize_events
-from isaaclab_tasks.manager_based.manipulation.visualize.visualize_env_cfg import (
-    VisualizeEnvCfg,
-    ASSET_INIT_POS,
-)
+from isaaclab_tasks.manager_based.manipulation.cylinder import mdp
+from isaaclab_tasks.manager_based.manipulation.cylinder.mdp import cylinder_events
+from isaaclab_tasks.manager_based.manipulation.cylinder.cylinder_env_cfg import CylinderEnvCfg
 
 from isaaclab_assets.robots.droid import DROID_CFG  # isort: skip
 from isaaclab.markers.config import FRAME_MARKER_CFG  # isort: skip
+
+from isaaclab_tasks.manager_based.manipulation.cylinder.cylinder_env_cfg import ASSET_INIT_POS
 
 
 @configclass
@@ -33,7 +33,7 @@ class EventCfg:
     """Configuration for events."""
 
     init_franka_arm_pose = EventTerm(
-        func=visualize_events.set_default_joint_pose,
+        func=cylinder_events.set_default_joint_pose,
         mode="reset",
         params={
             "default_pose": [
@@ -55,7 +55,7 @@ class EventCfg:
     )
 
     randomize_franka_joint_state = EventTerm(
-        func=visualize_events.randomize_joint_by_gaussian_offset,
+        func=cylinder_events.randomize_joint_by_gaussian_offset,
         mode="reset",
         params={
             "mean": 0.0,
@@ -64,8 +64,26 @@ class EventCfg:
         },
     )
 
+    randomize_object_positions = EventTerm(
+        func=cylinder_events.randomize_object_pose,
+        mode="reset",
+        params={
+            "pose_range": {
+                "x": (0.2, 0.3),
+                "y": (-0.3, 0.3),
+                "z": (ASSET_INIT_POS[2], ASSET_INIT_POS[2]),
+                "yaw": (-0.5, 0.5),
+            },
+            "min_separation": 0.25,
+            "asset_cfgs": [
+                SceneEntityCfg("cylinder"),
+                SceneEntityCfg("triangle"),
+            ],
+        },
+    )
+
     randomize_light = EventTerm(
-        func=visualize_events.randomize_scene_lighting_domelight,
+        func=cylinder_events.randomize_scene_lighting_domelight,
         mode="reset",
         params={
             "intensity_range": (1500.0, 10000.0),
@@ -115,6 +133,7 @@ class ObservationsCfg:
                 "data_type": "rgb",
                 "normalize": False,
             },
+            # noise=GaussianNoiseCfg(mean=0.0, std=15.0, operation="add"),
         )
         wrist_cam = ObsTerm(
             func=mdp.image,
@@ -123,16 +142,46 @@ class ObservationsCfg:
                 "data_type": "rgb",
                 "normalize": False,
             },
+            # noise=GaussianNoiseCfg(mean=0.0, std=15.0, operation="add"),
         )
 
         def __post_init__(self):
-            self.enable_corruption = False
+            self.enable_corruption = True
             self.concatenate_terms = False
 
     @configclass
     class SubtaskCfg(ObsGroup):
         """Observations for subtask group."""
 
+        grasp_1 = ObsTerm(
+            func=mdp.object_grasped,
+            params={
+                "robot_cfg": SceneEntityCfg("robot"),
+                "ee_frame_cfg": SceneEntityCfg("ee_frame"),
+                "object_cfg": SceneEntityCfg("cylinder"),
+                "diff_threshold": 0.1,
+            },
+        )
+
+        place_1 = ObsTerm(
+            func=mdp.cylinder_placed,
+            params={
+                "robot_cfg": SceneEntityCfg("robot"),
+                "object_cfg": SceneEntityCfg("cylinder"),
+                "desired_height": 0.05,
+            },
+        )
+
+        grasp_2 = ObsTerm(
+            func=mdp.object_grasped,
+            params={
+                "robot_cfg": SceneEntityCfg("robot"),
+                "ee_frame_cfg": SceneEntityCfg("ee_frame"),
+                "object_cfg": SceneEntityCfg("triangle"),
+                "diff_threshold": 0.1,
+            },
+        )
+        
         def __post_init__(self):
             self.enable_corruption = False
             self.concatenate_terms = False
@@ -143,7 +192,7 @@ class ObservationsCfg:
 
 
 @configclass
-class DroidVisualizeJointPosVisuomotorEnvCfg(VisualizeEnvCfg):
+class DroidCylinderJointPosVisuomotorEnvCfg(CylinderEnvCfg):
     observations: ObservationsCfg = ObservationsCfg()
 
     # Evaluation settings
@@ -228,10 +277,9 @@ class DroidVisualizeJointPosVisuomotorEnvCfg(VisualizeEnvCfg):
                 clipping_range=(1e-4, 5),
             ),
             offset=CameraCfg.OffsetCfg(
-                # pos=(0.004620336834421451, -0.5388594867462788, 0.454018368138419),
-                pos=(0.026385492297266278, -0.5639475268109672, 0.45270191921434777),
-                # rot=(-0.5078392969, 0.7575422903, -0.3175587775, 0.2595868830),
-                rot=(-0.5359, 0.7465, -0.3315, 0.2136),
+                pos=(0.004620336834421451, -0.5388594867462788, 0.454018368138419),
+                # rot=(0.2595868830, 0.3175587775, 0.7575422903, 0.5078392969),
+                rot=(-0.5078392969, 0.7575422903, -0.3175587775, 0.2595868830),
                 convention="ros",
             ),
         )
@@ -255,9 +303,15 @@ class DroidVisualizeJointPosVisuomotorEnvCfg(VisualizeEnvCfg):
             ),
         )
 
-        # # Set settings for camera rendering
-        # self.rerender_on_reset = True
-        # self.sim.render.antialiasing_mode = "OFF"  # disable dlss
+        # Set settings for camera rendering
+        self.rerender_on_reset = True
+        self.sim.render.antialiasing_mode = "OFF"  # disable dlss
+
+        # change camera resolutions to save memory
+        self.scene.table_cam.height = 720 / 4
+        self.scene.table_cam.width = 1280 / 4
+        self.scene.wrist_cam.height = 720 / 4
+        self.scene.wrist_cam.width = 1280 / 4
 
         # List of image observations in policy observations
         self.image_obs_list = ["table_cam", "wrist_cam"]
