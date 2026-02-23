@@ -195,21 +195,14 @@ def cylinder_placed(
     env: ManagerBasedRLEnv,
     object_cfg: SceneEntityCfg,
     robot_cfg: SceneEntityCfg,
-    target_x: float,
-    target_y: float,
-    xy_threshold: float = 0.05,
     desired_height: float = 0.07,
 ) -> torch.Tensor:
     """Check if the cylinder 1 is placed on the table."""
     cylinder: RigidObject = env.scene[object_cfg.name]
     robot: Articulation = env.scene[robot_cfg.name]
 
-    # distance from origin
-    xy_dist = torch.linalg.vector_norm(cylinder.data.root_pos_w[:, :2] - torch.tensor([target_x, target_y], dtype=torch.float32).to(env.device), dim=1)
-    placed = xy_dist < xy_threshold
-
     height_dist = cylinder.data.root_pos_w[:, 2] - desired_height
-    placed = torch.logical_and(placed, height_dist > 0)
+    placed = height_dist > 0
 
     gripper_joint_ids, _ = robot.find_joints(env.cfg.gripper_joint_names)
     assert len(gripper_joint_ids) == 2, "Observations only support parallel gripper for now"

@@ -177,7 +177,6 @@ class DroidCylinderIKRelMimicEnv(ManagerBasedRLMimicEnv):
         subtask_terms = self.obs_buf["subtask_terms"]
         signals["grasp_1"] = subtask_terms["grasp_1"][env_ids]
         signals["place_1"] = subtask_terms["place_1"][env_ids]
-        signals["grasp_2"] = subtask_terms["grasp_2"][env_ids]
         return signals
 
     # def get_expected_attached_object(

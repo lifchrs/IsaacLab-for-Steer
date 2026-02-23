@@ -22,11 +22,6 @@ from isaaclab.managers import SceneEntityCfg
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedEnv
 
-ASSET_DIR = os.path.join(
-    os.path.dirname(__file__),
-    "../../../../../../../diffusion_policy/reconstruction/asset/water_world",
-)
-
 
 def set_default_joint_pose(
     env: ManagerBasedEnv,

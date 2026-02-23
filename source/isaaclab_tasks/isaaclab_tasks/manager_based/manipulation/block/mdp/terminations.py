@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING
 import isaaclab.utils.math as math_utils
 from isaaclab.assets import Articulation, RigidObject
 from isaaclab.managers import SceneEntityCfg
-from isaaclab.sensors import ContactSensor, FrameTransformer
+from isaaclab.sensors import ContactSensor
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
@@ -77,7 +77,7 @@ def task_done_cylinder_contact(
     cylinder_cfg: SceneEntityCfg = SceneEntityCfg("cylinder"),
     triangle_cfg: SceneEntityCfg = SceneEntityCfg("triangle"),
     contact_sensor_cfg: SceneEntityCfg = SceneEntityCfg("triangle_contact"),
-    cylinder_desired_height: float = 0.05,
+    cylinder_desired_height: float = 0.015,
     triangle_desired_height: float = 0.09,
     contact_threshold: float = 0.001,
     atol=0.0001,
@@ -128,35 +128,50 @@ def task_done_cylinder_contact(
     return done
 
 
-def task_done_cylinder(
+def task_done_block(
     env: ManagerBasedRLEnv,
     robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
     cylinder_cfg: SceneEntityCfg = SceneEntityCfg("cylinder"),
-    ee_frame_cfg: SceneEntityCfg = SceneEntityCfg("ee_frame"),
-    cylinder_desired_height: float = 0.043,
-    ee_min_height: float = 0.2,
-    ee_cylinder_min_dist: float = 0.15,
+    triangle_cfg: SceneEntityCfg = SceneEntityCfg("triangle"),
+    cylinder_desired_height: float = 0.015,
+    triangle_desired_height: float = 0.095,
+    xy_threshold: float = 0.02,
+    z_threshold: float = 0.01,
     atol=0.01,
     rtol=0.01,
 ):
     robot: Articulation = env.scene[robot_cfg.name]
     cylinder: RigidObject = env.scene[cylinder_cfg.name]
-    ee_frame: FrameTransformer = env.scene[ee_frame_cfg.name]
+    triangle: RigidObject = env.scene[triangle_cfg.name]
 
     cylinder_pos = cylinder.data.root_pos_w
-    ee_pos = ee_frame.data.target_pos_w[:, 0, :]
+    triangle_pos = triangle.data.root_pos_w
 
     cylinder_height = cylinder_pos[:, 2]
+    triangle_height = triangle_pos[:, 2]
 
     # print(f"cylinder_height: {cylinder_height}")
+    # print(f"triangle_height: {triangle_height}")
 
     done = cylinder_height > cylinder_desired_height
+    done = torch.logical_and(done, triangle_height > triangle_desired_height)
 
-    ee_height = ee_pos[:, 2]
-    done = torch.logical_and(done, ee_height > ee_min_height)
+    # Check xy distance between triangle and cylinder
+    # xy_dist = torch.norm(triangle_pos[:, :2] - cylinder_pos[:, :2], dim=1)
+    # done = torch.logical_and(done, xy_dist < xy_threshold)
 
-    ee_to_cylinder_dist = torch.linalg.vector_norm(ee_pos - cylinder_pos, dim=-1)
-    done = torch.logical_and(done, ee_to_cylinder_dist > ee_cylinder_min_dist)
+    # Check that triangle is on the cylinder
+    z_dist = triangle_height - cylinder_height
+    # print(f"z_dist: {z_dist}")
+    
+    desired_z_dist = triangle_desired_height - cylinder_desired_height
+    done = torch.logical_and(done, abs(z_dist - desired_z_dist) < z_threshold)
+
+    xy_dist = torch.norm(triangle_pos[:, :2] - cylinder_pos[:, :2], dim=1)
+    # print(f"xy_dist: {xy_dist}")
+
+    # check if the block is within the xy threshold
+    done = torch.logical_and(done, xy_dist < xy_threshold)
 
     # Check gripper positions
     gripper_joint_ids, _ = robot.find_joints(env.cfg.gripper_joint_names)

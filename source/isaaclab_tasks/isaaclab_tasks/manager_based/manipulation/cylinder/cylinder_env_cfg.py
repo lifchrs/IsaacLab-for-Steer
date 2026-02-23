@@ -114,7 +114,7 @@ class CylinderSceneCfg(InteractiveSceneCfg):
         init_state=ASSET_INIT_STATE,
         spawn=UsdFileCfg(
             usd_path=os.path.abspath(os.path.join(ASSET_DIR, "cylinder/cylinder.usd")),
-            scale=(0.8, 1.0, 1.0),
+            scale=(1.2, 1.0, 1.0),
             activate_contact_sensors=True,
             rigid_props=rigid_body_properties,
             mass_props=mass_properties,
@@ -158,6 +158,18 @@ class CylinderSceneCfg(InteractiveSceneCfg):
         prim_path="/World/light",
         spawn=sim_utils.DomeLightCfg(color=(0.75, 0.75, 0.75), intensity=3000.0),
     )
+
+    # distant_light = AssetBaseCfg(
+    # prim_path="/World/distant_light",
+    # spawn=sim_utils.DistantLightCfg(
+    #     color=(1.0, 1.0, 1.0),
+    #     intensity=2000.0,
+    #     angle=0.53,
+    # ),
+    # init_state=AssetBaseCfg.InitialStateCfg(
+    #     rot=(0.866, 0.5, 0.0, 0.0),  # tilted 60 degrees from zenith
+    # ),
+    # )
 
 
 ##
@@ -219,17 +231,7 @@ class ObservationsCfg:
             params={
                 "robot_cfg": SceneEntityCfg("robot"),
                 "object_cfg": SceneEntityCfg("cylinder"),
-                "desired_height": 0.05,
-            },
-        )
-
-        grasp_2 = ObsTerm(
-            func=mdp.object_grasped,
-            params={
-                "robot_cfg": SceneEntityCfg("robot"),
-                "ee_frame_cfg": SceneEntityCfg("ee_frame"),
-                "object_cfg": SceneEntityCfg("triangle"),
-                "diff_threshold": 0.1,
+                "desired_height": 0.044,
             },
         )
         
@@ -265,13 +267,6 @@ class TerminationsCfg:
             "asset_cfg": SceneEntityCfg("triangle"),
         },
     )
-
-    # blocks_moving = DoneTerm(
-    #     func=mdp.root_velocity_exceeds_threshold,
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("blocks"),
-    #     },
-    # )
 
     success = DoneTerm(func=mdp.task_done_cylinder)
 

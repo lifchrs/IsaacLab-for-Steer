@@ -6,7 +6,7 @@
 from isaaclab.envs.mimic_env_cfg import MimicEnvCfg, SubTaskConfig
 from isaaclab.utils import configclass
 
-from isaaclab_tasks.manager_based.manipulation.blocks.config.droid.block_ik_rel_visuomotor_env_cfg import (
+from isaaclab_tasks.manager_based.manipulation.block.config.droid.block_ik_rel_visuomotor_env_cfg import (
     DroidBlockIkRelVisuomotorEnvCfg,
 )
 
@@ -38,14 +38,14 @@ class DroidBlockIKRelVisuomotorMimicEnvCfg(
         # # should terminate (used for data generation)
         # self.should_terminate = dict[int, bool]()
 
-        ACTION_NOISE = 0.01
+        ACTION_NOISE = 0.02
 
         # The following are the subtask configurations for the block task.
         subtask_configs = []
         subtask_configs.append(
             SubTaskConfig(
                 # Each subtask involves manipulation with respect to a single object frame.
-                object_ref="cylinder_1",
+                object_ref="cylinder",
                 # This key corresponds to the binary indicator in "datagen_info" that signals
                 # when this subtask is finished (e.g., on a 0 to 1 edge).
                 subtask_term_signal="grasp_1",
@@ -69,13 +69,13 @@ class DroidBlockIKRelVisuomotorMimicEnvCfg(
         subtask_configs.append(
             SubTaskConfig(
                 # Each subtask involves manipulation with respect to a single object frame.
-                object_ref="cylinder_1",
+                object_ref=None,
                 # Corresponding key for the binary indicator in "datagen_info" for completion
                 subtask_term_signal="place_1",
                 # Time offsets for data generation when splitting a trajectory
                 subtask_term_offset_range=(0, 0),
                 # Selection strategy for source subtask segment
-                selection_strategy="nearest_neighbor_object",
+                selection_strategy="random",
                 # Optional parameters for the selection strategy function
                 selection_strategy_kwargs={"nn_k": 3},
                 # Amount of action noise to apply during this subtask
@@ -91,7 +91,7 @@ class DroidBlockIKRelVisuomotorMimicEnvCfg(
         subtask_configs.append(
             SubTaskConfig(
                 # Each subtask involves manipulation with respect to a single object frame.
-                object_ref="cylinder_2",
+                object_ref="triangle",
                 # Corresponding key for the binary indicator in "datagen_info" for completion
                 subtask_term_signal="grasp_2",
                 # Time offsets for data generation when splitting a trajectory
@@ -113,53 +113,9 @@ class DroidBlockIKRelVisuomotorMimicEnvCfg(
         subtask_configs.append(
             SubTaskConfig(
                 # Each subtask involves manipulation with respect to a single object frame.
-                object_ref="cylinder_2",
+                object_ref="cylinder",
                 # Corresponding key for the binary indicator in "datagen_info" for completion
-                subtask_term_signal="place_2",
-                # Time offsets for data generation when splitting a trajectory
-                subtask_term_offset_range=(0, 0),
-                # Selection strategy for source subtask segment
-                selection_strategy="nearest_neighbor_object",
-                # Optional parameters for the selection strategy function
-                selection_strategy_kwargs={"nn_k": 3},
-                # Amount of action noise to apply during this subtask
-                action_noise=ACTION_NOISE,
-                # Number of interpolation steps to bridge to this subtask segment
-                num_interpolation_steps=10,
-                # Additional fixed steps for the robot to reach the necessary pose
-                num_fixed_steps=0,
-                # If True, apply action noise during the interpolation phase and execution
-                apply_noise_during_interpolation=False,
-            )
-        )
-        subtask_configs.append(
-            SubTaskConfig(
-                # Each subtask involves manipulation with respect to a single object frame.
-                object_ref="triangle",
-                # Corresponding key for the binary indicator in "datagen_info" for completion
-                subtask_term_signal="grasp_3",
-                # Time offsets for data generation when splitting a trajectory
-                subtask_term_offset_range=(0, 0),
-                # Selection strategy for source subtask segment
-                selection_strategy="nearest_neighbor_object",
-                # Optional parameters for the selection strategy function
-                selection_strategy_kwargs={"nn_k": 3},
-                # Amount of action noise to apply during this subtask
-                action_noise=ACTION_NOISE,
-                # Number of interpolation steps to bridge to this subtask segment
-                num_interpolation_steps=10,
-                # Additional fixed steps for the robot to reach the necessary pose
-                num_fixed_steps=0,
-                # If True, apply action noise during the interpolation phase and execution
-                apply_noise_during_interpolation=False,
-            )
-        )
-        subtask_configs.append(
-            SubTaskConfig(
-                # Each subtask involves manipulation with respect to a single object frame.
-                object_ref="triangle",
-                # Corresponding key for the binary indicator in "datagen_info" for completion
-                subtask_term_signal="place_3",
+                subtask_term_signal=None,
                 # Time offsets for data generation when splitting a trajectory
                 subtask_term_offset_range=(0, 0),
                 # Selection strategy for source subtask segment

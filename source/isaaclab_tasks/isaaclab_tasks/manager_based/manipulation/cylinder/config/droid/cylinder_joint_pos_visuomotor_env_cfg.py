@@ -69,8 +69,8 @@ class EventCfg:
         mode="reset",
         params={
             "pose_range": {
-                "x": (0.2, 0.3),
-                "y": (-0.3, 0.3),
+                "x": (0.2, 0.25),
+                "y": (-0.2, 0.25),
                 "z": (ASSET_INIT_POS[2], ASSET_INIT_POS[2]),
                 "yaw": (-0.5, 0.5),
             },
@@ -168,17 +168,7 @@ class ObservationsCfg:
             params={
                 "robot_cfg": SceneEntityCfg("robot"),
                 "object_cfg": SceneEntityCfg("cylinder"),
-                "desired_height": 0.05,
-            },
-        )
-
-        grasp_2 = ObsTerm(
-            func=mdp.object_grasped,
-            params={
-                "robot_cfg": SceneEntityCfg("robot"),
-                "ee_frame_cfg": SceneEntityCfg("ee_frame"),
-                "object_cfg": SceneEntityCfg("triangle"),
-                "diff_threshold": 0.1,
+                "desired_height": 0.044,
             },
         )
         

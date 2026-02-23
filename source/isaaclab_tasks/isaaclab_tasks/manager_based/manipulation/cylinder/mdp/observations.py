@@ -195,7 +195,7 @@ def cylinder_placed(
     env: ManagerBasedRLEnv,
     object_cfg: SceneEntityCfg,
     robot_cfg: SceneEntityCfg,
-    desired_height: float = 0.07,
+    desired_height: float = 0.044,
 ) -> torch.Tensor:
     """Check if the cylinder 1 is placed on the table."""
     cylinder: RigidObject = env.scene[object_cfg.name]

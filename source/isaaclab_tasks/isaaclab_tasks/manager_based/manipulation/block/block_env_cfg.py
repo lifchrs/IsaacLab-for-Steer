@@ -31,8 +31,8 @@ ASSET_DIR = os.path.join(
     "../../../../../../assets",
 )
 
-TABLE_INIT_POS = [0.45, -0.12, -0.10]
-ASSET_INIT_POS = [0.25, 0.0, -0.05]
+TABLE_INIT_POS = [0.25, 0.0, -0.10]
+ASSET_INIT_POS = [0.25, 0.0, 0.0]
 ASSET_INIT_ROT = [1.0, 0.0, 0.0, 0.0]
 
 TABLE_INIT_STATE = RigidObjectCfg.InitialStateCfg(
@@ -89,7 +89,7 @@ class BlockSceneCfg(InteractiveSceneCfg):
     # table
     table = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/table",
-        init_state=ASSET_INIT_STATE,
+        init_state=TABLE_INIT_STATE,
         spawn=UsdFileCfg(
             usd_path=os.path.abspath(
                 os.path.join(ASSET_DIR, "table.usd")
@@ -109,29 +109,16 @@ class BlockSceneCfg(InteractiveSceneCfg):
     #     ),
     # )
 
-    cylinder_1 = RigidObjectCfg(
-        prim_path="{ENV_REGEX_NS}/cylinder_1",
+    cylinder = RigidObjectCfg(
+        prim_path="{ENV_REGEX_NS}/cylinder",
         init_state=ASSET_INIT_STATE,
         spawn=UsdFileCfg(
             usd_path=os.path.abspath(os.path.join(ASSET_DIR, "cylinder/cylinder.usd")),
-            scale=(1.0, 1.0, 1.0),
+            scale=(0.8, 1.0, 1.0),
             activate_contact_sensors=True,
             rigid_props=rigid_body_properties,
             mass_props=mass_properties,
-            semantic_tags=[("class", "cylinder_1")],
-        ),
-    )
-
-    cylinder_2 = RigidObjectCfg(
-        prim_path="{ENV_REGEX_NS}/cylinder_2",
-        init_state=ASSET_INIT_STATE,
-        spawn=UsdFileCfg(
-            usd_path=os.path.abspath(os.path.join(ASSET_DIR, "cylinder/cylinder.usd")),
-            scale=(1.0, 1.0, 1.0),
-            activate_contact_sensors=True,
-            rigid_props=rigid_body_properties,
-            mass_props=mass_properties,
-            semantic_tags=[("class", "cylinder_2")],
+            semantic_tags=[("class", "cylinder")],
         ),
     )
 
@@ -140,7 +127,7 @@ class BlockSceneCfg(InteractiveSceneCfg):
         init_state=ASSET_INIT_STATE,
         spawn=UsdFileCfg(
             usd_path=os.path.abspath(os.path.join(ASSET_DIR, "triangle/triangle.usd")),
-            scale=(1.0, 1.0, 1.0),
+            scale=(0.4, 0.7, 0.4),
             activate_contact_sensors=True,
             rigid_props=rigid_body_properties,
             mass_props=mass_properties,
@@ -151,7 +138,19 @@ class BlockSceneCfg(InteractiveSceneCfg):
     triangle_contact = ContactSensorCfg(
         prim_path="{ENV_REGEX_NS}/triangle",
         update_period=0.0,
-        filter_prim_paths_expr=["{ENV_REGEX_NS}/cylinder_1", "{ENV_REGEX_NS}/cylinder_2"],
+        filter_prim_paths_expr=["{ENV_REGEX_NS}/cylinder"],
+    )
+
+    # Invisible ground below the table to prevent objects from falling infinitely.
+    # Shared across all sub-environments (global prim path, not per-env).
+    ground = AssetBaseCfg(
+        prim_path="/World/ground",
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.0, 0.0, -0.5)),
+        spawn=sim_utils.CuboidCfg(
+            size=(2000.0, 2000.0, 0.02),
+            visible=False,
+            collision_props=sim_utils.schemas.CollisionPropertiesCfg(),
+        ),
     )
 
     # lights
@@ -159,6 +158,18 @@ class BlockSceneCfg(InteractiveSceneCfg):
         prim_path="/World/light",
         spawn=sim_utils.DomeLightCfg(color=(0.75, 0.75, 0.75), intensity=3000.0),
     )
+
+    # distant_light = AssetBaseCfg(
+    # prim_path="/World/distant_light",
+    # spawn=sim_utils.DistantLightCfg(
+    #     color=(1.0, 1.0, 1.0),
+    #     intensity=2000.0,
+    #     angle=0.53,
+    # ),
+    # init_state=AssetBaseCfg.InitialStateCfg(
+    #     rot=(0.866, 0.5, 0.0, 0.0),  # tilted 60 degrees from zenith
+    # ),
+    # )
 
 
 ##
@@ -210,7 +221,7 @@ class ObservationsCfg:
             params={
                 "robot_cfg": SceneEntityCfg("robot"),
                 "ee_frame_cfg": SceneEntityCfg("ee_frame"),
-                "object_cfg": SceneEntityCfg("cylinder_1"),
+                "object_cfg": SceneEntityCfg("cylinder"),
                 "diff_threshold": 0.1,
             },
         )
@@ -219,37 +230,12 @@ class ObservationsCfg:
             func=mdp.cylinder_placed,
             params={
                 "robot_cfg": SceneEntityCfg("robot"),
-                "object_cfg": SceneEntityCfg("cylinder_1"),
-                "target_x": 0.0,
-                "target_y": 0.0,
-                "xy_threshold": 0.05,
-                "desired_height": 0.07,
+                "object_cfg": SceneEntityCfg("cylinder"),
+                "desired_height": 0.015,
             },
         )
 
         grasp_2 = ObsTerm(
-            func=mdp.object_grasped,
-            params={
-                "robot_cfg": SceneEntityCfg("robot"),
-                "ee_frame_cfg": SceneEntityCfg("ee_frame"),
-                "object_cfg": SceneEntityCfg("cylinder_2"),
-                "diff_threshold": 0.1,
-            },
-        )
-
-        place_2 = ObsTerm(
-            func=mdp.cylinder_placed,
-            params={
-                "robot_cfg": SceneEntityCfg("robot"),
-                "object_cfg": SceneEntityCfg("cylinder_2"),
-                "target_x": 0.07,
-                "target_y": 0.0,
-                "xy_threshold": 0.05,
-                "desired_height": 0.07,
-            },
-        )
-
-        grasp_3 = ObsTerm(
             func=mdp.object_grasped,
             params={
                 "robot_cfg": SceneEntityCfg("robot"),
@@ -275,29 +261,14 @@ class TerminationsCfg:
 
     # time_out = DoneTerm(func=mdp.time_out, time_out=True)
 
-    # blocks_dropping_off_table = DoneTerm(
-    #     func=mdp.root_height_below_minimum,
-    #     params={
-    #         "minimum_height": ASSET_INIT_POS[2] - 0.1,
-    #         "asset_cfg": SceneEntityCfg("blocks"),
-    #     },
-    # )
-
-    cylinder_1_dropping_off_table = DoneTerm(
+    cylinder_dropping_off_table = DoneTerm(
         func=mdp.root_height_below_minimum,
         params={
             "minimum_height": ASSET_INIT_POS[2] - 0.1,
-            "asset_cfg": SceneEntityCfg("cylinder_1"),
+            "asset_cfg": SceneEntityCfg("cylinder"),
         },
     )
 
-    cylinder_2_dropping_off_table = DoneTerm(
-        func=mdp.root_height_below_minimum,
-        params={
-            "minimum_height": ASSET_INIT_POS[2] - 0.1,
-            "asset_cfg": SceneEntityCfg("cylinder_2"),
-        },
-    )
 
     triangle_dropping_off_table = DoneTerm(
         func=mdp.root_height_below_minimum,
@@ -307,24 +278,12 @@ class TerminationsCfg:
         },
     )
 
-    # blocks_moving = DoneTerm(
-    #     func=mdp.root_velocity_exceeds_threshold,
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("blocks"),
-    #     },
-    # )
-
-    success = DoneTerm(
-        func=mdp.task_done_block,
-        params={
-            "contact_sensor_cfg": SceneEntityCfg("triangle_contact"),
-        },
-    )
+    success = DoneTerm(func=mdp.task_done_block)
 
 
 @configclass
 class BlockEnvCfg(ManagerBasedRLEnvCfg):
-    """Configuration for the water plant environment aligned with the real-world layout."""
+    """Configuration for the block environment aligned with the real-world layout."""
 
     # Scene settings
     scene: BlockSceneCfg = BlockSceneCfg(

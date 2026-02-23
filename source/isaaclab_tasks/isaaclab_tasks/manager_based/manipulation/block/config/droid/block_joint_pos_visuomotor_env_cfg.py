@@ -18,14 +18,14 @@ from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, NVIDIA_NUCLEUS_DIR
 from isaaclab.utils.noise import GaussianNoiseCfg
 
-from isaaclab_tasks.manager_based.manipulation.blocks import mdp
-from isaaclab_tasks.manager_based.manipulation.blocks.mdp import block_events
-from isaaclab_tasks.manager_based.manipulation.blocks.block_env_cfg import BlockEnvCfg
+from isaaclab_tasks.manager_based.manipulation.block import mdp
+from isaaclab_tasks.manager_based.manipulation.block.mdp import block_events
+from isaaclab_tasks.manager_based.manipulation.block.block_env_cfg import BlockEnvCfg
 
 from isaaclab_assets.robots.droid import DROID_CFG  # isort: skip
 from isaaclab.markers.config import FRAME_MARKER_CFG  # isort: skip
 
-from isaaclab_tasks.manager_based.manipulation.blocks.block_env_cfg import ASSET_INIT_POS
+from isaaclab_tasks.manager_based.manipulation.cylinder.cylinder_env_cfg import ASSET_INIT_POS
 
 
 @configclass
@@ -69,17 +69,15 @@ class EventCfg:
         mode="reset",
         params={
             "pose_range": {
-                "x": (0.3, 0.6),
-                "y": (0.0, 0.4),
+                "x": (0.2, 0.25),
+                "y": (-0.3, 0.25),
                 "z": (ASSET_INIT_POS[2], ASSET_INIT_POS[2]),
                 "yaw": (-0.5, 0.5),
             },
             "min_separation": 0.25,
             "asset_cfgs": [
-                SceneEntityCfg("cylinder_1"),
-                SceneEntityCfg("cylinder_2"),
+                SceneEntityCfg("cylinder"),
                 SceneEntityCfg("triangle"),
-                # SceneEntityCfg("blocks"),
             ],
         },
     )
@@ -160,7 +158,7 @@ class ObservationsCfg:
             params={
                 "robot_cfg": SceneEntityCfg("robot"),
                 "ee_frame_cfg": SceneEntityCfg("ee_frame"),
-                "object_cfg": SceneEntityCfg("cylinder_1"),
+                "object_cfg": SceneEntityCfg("cylinder"),
                 "diff_threshold": 0.1,
             },
         )
@@ -169,37 +167,12 @@ class ObservationsCfg:
             func=mdp.cylinder_placed,
             params={
                 "robot_cfg": SceneEntityCfg("robot"),
-                "object_cfg": SceneEntityCfg("cylinder_1"),
-                "target_x": 0.0,
-                "target_y": 0.0,
-                "xy_threshold": 0.05,
-                "desired_height": 0.07,
+                "object_cfg": SceneEntityCfg("cylinder"),
+                "desired_height": 0.015,
             },
         )
 
         grasp_2 = ObsTerm(
-            func=mdp.object_grasped,
-            params={
-                "robot_cfg": SceneEntityCfg("robot"),
-                "ee_frame_cfg": SceneEntityCfg("ee_frame"),
-                "object_cfg": SceneEntityCfg("cylinder_2"),
-                "diff_threshold": 0.1,
-            },
-        )
-
-        place_2 = ObsTerm(
-            func=mdp.cylinder_placed,
-            params={
-                "robot_cfg": SceneEntityCfg("robot"),
-                "object_cfg": SceneEntityCfg("cylinder_2"),
-                "target_x": 0.07,
-                "target_y": 0.0,
-                "xy_threshold": 0.05,
-                "desired_height": 0.07,
-            },
-        )
-
-        grasp_3 = ObsTerm(
             func=mdp.object_grasped,
             params={
                 "robot_cfg": SceneEntityCfg("robot"),
