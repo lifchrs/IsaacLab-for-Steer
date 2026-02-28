@@ -78,6 +78,7 @@ DROID_CFG = ArticulationCfg(
             joint_names_expr=["finger_joint"],
             stiffness=None,
             damping=None,
+            # effort_limit=200.0,
             velocity_limit=1.0,
         ),
     },

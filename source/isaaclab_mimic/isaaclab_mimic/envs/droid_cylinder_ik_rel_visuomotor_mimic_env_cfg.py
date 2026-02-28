@@ -69,13 +69,13 @@ class DroidCylinderIKRelVisuomotorMimicEnvCfg(
         subtask_configs.append(
             SubTaskConfig(
                 # Each subtask involves manipulation with respect to a single object frame.
-                object_ref="cylinder",
+                object_ref=None,
                 # Corresponding key for the binary indicator in "datagen_info" for completion
                 subtask_term_signal="place_1",
                 # Time offsets for data generation when splitting a trajectory
                 subtask_term_offset_range=(0, 0),
                 # Selection strategy for source subtask segment
-                selection_strategy="nearest_neighbor_object",
+                selection_strategy="random",
                 # Optional parameters for the selection strategy function
                 selection_strategy_kwargs={"nn_k": 3},
                 # Amount of action noise to apply during this subtask

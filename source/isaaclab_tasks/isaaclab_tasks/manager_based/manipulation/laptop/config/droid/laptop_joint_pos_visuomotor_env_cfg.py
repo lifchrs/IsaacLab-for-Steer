@@ -18,14 +18,14 @@ from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, NVIDIA_NUCLEUS_DIR
 from isaaclab.utils.noise import GaussianNoiseCfg
 
-from isaaclab_tasks.manager_based.manipulation.cylinder import mdp
-from isaaclab_tasks.manager_based.manipulation.cylinder.mdp import cylinder_events
-from isaaclab_tasks.manager_based.manipulation.cylinder.cylinder_env_cfg import CylinderEnvCfg
+from isaaclab_tasks.manager_based.manipulation.laptop import mdp
+from isaaclab_tasks.manager_based.manipulation.laptop.mdp import laptop_events
+from isaaclab_tasks.manager_based.manipulation.laptop.laptop_env_cfg import LaptopEnvCfg
 
 from isaaclab_assets.robots.droid import DROID_CFG  # isort: skip
 from isaaclab.markers.config import FRAME_MARKER_CFG  # isort: skip
 
-from isaaclab_tasks.manager_based.manipulation.cylinder.cylinder_env_cfg import ASSET_INIT_POS
+from isaaclab_tasks.manager_based.manipulation.laptop.laptop_env_cfg import ASSET_INIT_POS
 
 
 @configclass
@@ -33,7 +33,7 @@ class EventCfg:
     """Configuration for events."""
 
     init_franka_arm_pose = EventTerm(
-        func=cylinder_events.set_default_joint_pose,
+        func=laptop_events.set_default_joint_pose,
         mode="reset",
         params={
             "default_pose": [
@@ -55,7 +55,7 @@ class EventCfg:
     )
 
     randomize_franka_joint_state = EventTerm(
-        func=cylinder_events.randomize_joint_by_gaussian_offset,
+        func=laptop_events.randomize_joint_by_gaussian_offset,
         mode="reset",
         params={
             "mean": 0.0,
@@ -65,25 +65,40 @@ class EventCfg:
     )
 
     randomize_object_positions = EventTerm(
-        func=cylinder_events.randomize_object_pose,
+        func=laptop_events.randomize_object_pose,
         mode="reset",
         params={
             "pose_range": {
-                "x": (0.2, 0.25),
+                "x": (0.55, 0.60),
                 "y": (-0.2, 0.25),
                 "z": (ASSET_INIT_POS[2], ASSET_INIT_POS[2]),
                 "yaw": (-0.5, 0.5),
             },
             "min_separation": 0.25,
             "asset_cfgs": [
-                SceneEntityCfg("cylinder"),
-                SceneEntityCfg("triangle"),
+                SceneEntityCfg("laptop"),
             ],
         },
     )
 
+    reset_laptop_joint_state = EventTerm(
+        func=laptop_events.set_laptop_default_joint_pose,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("laptop"),
+        },
+    )
+
+    reset_table_joint_state = EventTerm(
+        func=laptop_events.set_table_default_joint_pose,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("table"),
+        },
+    )
+
     randomize_light = EventTerm(
-        func=cylinder_events.randomize_scene_lighting_domelight,
+        func=laptop_events.randomize_scene_lighting_domelight,
         mode="reset",
         params={
             "intensity_range": (1500.0, 10000.0),
@@ -103,7 +118,7 @@ class EventCfg:
             ],
             "default_intensity": 1500.0,
             "default_color": (0.75, 0.75, 0.75),
-            "default_texture": f"{NVIDIA_NUCLEUS_DIR}/Assets/Skies/Studio/photo_studio_01_4k.hdr",
+            # "default_texture": f"{NVIDIA_NUCLEUS_DIR}/Assets/Skies/Studio/photo_studio_01_4k.hdr",
         },
     )
 
@@ -153,24 +168,24 @@ class ObservationsCfg:
     class SubtaskCfg(ObsGroup):
         """Observations for subtask group."""
 
-        grasp_1 = ObsTerm(
-            func=mdp.object_grasped,
-            params={
-                "robot_cfg": SceneEntityCfg("robot"),
-                "ee_frame_cfg": SceneEntityCfg("ee_frame"),
-                "object_cfg": SceneEntityCfg("cylinder"),
-                "diff_threshold": 0.1,
-            },
-        )
+        # grasp_1 = ObsTerm(
+        #     func=mdp.object_grasped,
+        #     params={
+        #         "robot_cfg": SceneEntityCfg("robot"),
+        #         "ee_frame_cfg": SceneEntityCfg("ee_frame"),
+        #         "object_cfg": SceneEntityCfg("cylinder"),
+        #         "diff_threshold": 0.1,
+        #     },
+        # )
 
-        place_1 = ObsTerm(
-            func=mdp.cylinder_placed,
-            params={
-                "robot_cfg": SceneEntityCfg("robot"),
-                "object_cfg": SceneEntityCfg("cylinder"),
-                "desired_height": 0.044,
-            },
-        )
+        # place_1 = ObsTerm(
+        #     func=mdp.cylinder_placed,
+        #     params={
+        #         "robot_cfg": SceneEntityCfg("robot"),
+        #         "object_cfg": SceneEntityCfg("cylinder"),
+        #         "desired_height": 0.044,
+        #     },
+        # )
         
         def __post_init__(self):
             self.enable_corruption = False
@@ -182,7 +197,7 @@ class ObservationsCfg:
 
 
 @configclass
-class DroidCylinderJointPosVisuomotorEnvCfg(CylinderEnvCfg):
+class DroidLaptopJointPosVisuomotorEnvCfg(LaptopEnvCfg):
     observations: ObservationsCfg = ObservationsCfg()
 
     # Evaluation settings
@@ -259,19 +274,19 @@ class DroidCylinderJointPosVisuomotorEnvCfg(CylinderEnvCfg):
             height=720,
             width=1280,
             data_types=["rgb"],
-            spawn=sim_utils.PinholeCameraCfg(
-                focal_length=2.1,
-                focus_distance=28.0,
-                horizontal_aperture=5.376,
-                vertical_aperture=3.024,
-                clipping_range=(1e-4, 5),
-            ),
             # spawn=sim_utils.PinholeCameraCfg(
-            #     focal_length=1.0476,
-            #     horizontal_aperture=2.5452,
-            #     vertical_aperture=1.4721,
+            #     focal_length=2.1,
+            #     focus_distance=28.0,
+            #     horizontal_aperture=5.376,
+            #     vertical_aperture=3.024,
             #     clipping_range=(1e-4, 5),
             # ),
+            spawn=sim_utils.PinholeCameraCfg(
+                focal_length=1.0476,
+                horizontal_aperture=2.5452,
+                vertical_aperture=1.4721,
+                clipping_range=(1e-4, 5),
+            ),
             offset=CameraCfg.OffsetCfg(
                 pos=(0.004620336834421451, -0.5388594867462788, 0.454018368138419),
                 # rot=(0.2595868830, 0.3175587775, 0.7575422903, 0.5078392969),
@@ -304,10 +319,10 @@ class DroidCylinderJointPosVisuomotorEnvCfg(CylinderEnvCfg):
         self.sim.render.antialiasing_mode = "OFF"  # disable dlss
 
         # # change camera resolutions to save memory
-        # self.scene.table_cam.height = 720 // 4
-        # self.scene.table_cam.width = 1280 // 4
-        # self.scene.wrist_cam.height = 720 // 4
-        # self.scene.wrist_cam.width = 1280 // 4
+        # self.scene.table_cam.height = 720 / 4
+        # self.scene.table_cam.width = 1280 / 4
+        # self.scene.wrist_cam.height = 720 / 4
+        # self.scene.wrist_cam.width = 1280 / 4
 
         # List of image observations in policy observations
         self.image_obs_list = ["table_cam", "wrist_cam"]

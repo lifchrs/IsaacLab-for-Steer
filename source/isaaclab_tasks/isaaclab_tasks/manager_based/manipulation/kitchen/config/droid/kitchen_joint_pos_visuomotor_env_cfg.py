@@ -3,8 +3,6 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-import os
-import json
 import numpy as np
 import isaaclab.sim as sim_utils
 from isaaclab.managers import EventTermCfg as EventTerm
@@ -15,17 +13,14 @@ from isaaclab.sensors import CameraCfg
 from isaaclab.sensors import FrameTransformerCfg
 from isaaclab.sensors.frame_transformer.frame_transformer_cfg import OffsetCfg
 from isaaclab.utils import configclass
-from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, NVIDIA_NUCLEUS_DIR
-from isaaclab.utils.noise import GaussianNoiseCfg
+from isaaclab.utils.assets import NVIDIA_NUCLEUS_DIR
 
-from isaaclab_tasks.manager_based.manipulation.cylinder import mdp
+from isaaclab_tasks.manager_based.manipulation.kitchen import mdp
 from isaaclab_tasks.manager_based.manipulation.cylinder.mdp import cylinder_events
-from isaaclab_tasks.manager_based.manipulation.cylinder.cylinder_env_cfg import CylinderEnvCfg
+from isaaclab_tasks.manager_based.manipulation.kitchen.kitchen_env_cfg import KitchenEnvCfg
 
 from isaaclab_assets.robots.droid import DROID_CFG  # isort: skip
 from isaaclab.markers.config import FRAME_MARKER_CFG  # isort: skip
-
-from isaaclab_tasks.manager_based.manipulation.cylinder.cylinder_env_cfg import ASSET_INIT_POS
 
 
 @configclass
@@ -61,24 +56,6 @@ class EventCfg:
             "mean": 0.0,
             "std": 0.02,
             "asset_cfg": SceneEntityCfg("robot"),
-        },
-    )
-
-    randomize_object_positions = EventTerm(
-        func=cylinder_events.randomize_object_pose,
-        mode="reset",
-        params={
-            "pose_range": {
-                "x": (0.2, 0.25),
-                "y": (-0.2, 0.25),
-                "z": (ASSET_INIT_POS[2], ASSET_INIT_POS[2]),
-                "yaw": (-0.5, 0.5),
-            },
-            "min_separation": 0.25,
-            "asset_cfgs": [
-                SceneEntityCfg("cylinder"),
-                SceneEntityCfg("triangle"),
-            ],
         },
     )
 
@@ -133,7 +110,6 @@ class ObservationsCfg:
                 "data_type": "rgb",
                 "normalize": False,
             },
-            # noise=GaussianNoiseCfg(mean=0.0, std=15.0, operation="add"),
         )
         wrist_cam = ObsTerm(
             func=mdp.image,
@@ -142,64 +118,30 @@ class ObservationsCfg:
                 "data_type": "rgb",
                 "normalize": False,
             },
-            # noise=GaussianNoiseCfg(mean=0.0, std=15.0, operation="add"),
         )
 
         def __post_init__(self):
             self.enable_corruption = True
             self.concatenate_terms = False
 
-    @configclass
-    class SubtaskCfg(ObsGroup):
-        """Observations for subtask group."""
-
-        grasp_1 = ObsTerm(
-            func=mdp.object_grasped,
-            params={
-                "robot_cfg": SceneEntityCfg("robot"),
-                "ee_frame_cfg": SceneEntityCfg("ee_frame"),
-                "object_cfg": SceneEntityCfg("cylinder"),
-                "diff_threshold": 0.1,
-            },
-        )
-
-        place_1 = ObsTerm(
-            func=mdp.cylinder_placed,
-            params={
-                "robot_cfg": SceneEntityCfg("robot"),
-                "object_cfg": SceneEntityCfg("cylinder"),
-                "desired_height": 0.044,
-            },
-        )
-        
-        def __post_init__(self):
-            self.enable_corruption = False
-            self.concatenate_terms = False
-
-    # observation groups
     policy: PolicyCfg = PolicyCfg()
-    subtask_terms: SubtaskCfg = SubtaskCfg()
 
 
 @configclass
-class DroidCylinderJointPosVisuomotorEnvCfg(CylinderEnvCfg):
+class DroidKitchenJointPosVisuomotorEnvCfg(KitchenEnvCfg):
     observations: ObservationsCfg = ObservationsCfg()
 
-    # Evaluation settings
     eval_mode = False
     eval_type = None
 
     def __post_init__(self):
-        # post init of parent
         super().__post_init__()
 
-        # Set events
         self.events = EventCfg()
 
         self.scene.robot = DROID_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
         self.scene.robot.spawn.semantic_tags = [("class", "robot")]
 
-        # Set actions for the specific robot type (franka)
         self.actions.arm_action = mdp.JointPositionActionCfg(
             asset_name="robot",
             joint_names=["panda_joint.*"],
@@ -214,12 +156,10 @@ class DroidCylinderJointPosVisuomotorEnvCfg(CylinderEnvCfg):
             close_command_expr={"finger_joint": np.pi / 4},
         )
 
-        # utilities for gripper status check
         self.gripper_joint_names = ["right_outer_knuckle_joint", "finger_joint"]
         self.gripper_open_val = 0.0
         self.gripper_threshold = 0.005
 
-        # Listens to the required transforms
         marker_cfg = FRAME_MARKER_CFG.copy()
         marker_cfg.markers["frame"].scale = (0.1, 0.1, 0.1)
         marker_cfg.prim_path = "/Visuals/FrameTransformer"
@@ -253,7 +193,6 @@ class DroidCylinderJointPosVisuomotorEnvCfg(CylinderEnvCfg):
             ],
         )
 
-        # Set table camera as the real-world camera
         self.scene.table_cam = CameraCfg(
             prim_path="{ENV_REGEX_NS}/table_cam",
             height=720,
@@ -266,21 +205,13 @@ class DroidCylinderJointPosVisuomotorEnvCfg(CylinderEnvCfg):
                 vertical_aperture=3.024,
                 clipping_range=(1e-4, 5),
             ),
-            # spawn=sim_utils.PinholeCameraCfg(
-            #     focal_length=1.0476,
-            #     horizontal_aperture=2.5452,
-            #     vertical_aperture=1.4721,
-            #     clipping_range=(1e-4, 5),
-            # ),
             offset=CameraCfg.OffsetCfg(
                 pos=(0.004620336834421451, -0.5388594867462788, 0.454018368138419),
-                # rot=(0.2595868830, 0.3175587775, 0.7575422903, 0.5078392969),
                 rot=(-0.5078392969, 0.7575422903, -0.3175587775, 0.2595868830),
                 convention="ros",
             ),
         )
 
-        # Set wrist camera
         self.scene.wrist_cam = CameraCfg(
             prim_path="{ENV_REGEX_NS}/Robot/Gripper/Robotiq_2F_85/base_link/wrist_cam",
             height=720,
@@ -299,15 +230,7 @@ class DroidCylinderJointPosVisuomotorEnvCfg(CylinderEnvCfg):
             ),
         )
 
-        # Set settings for camera rendering
         self.rerender_on_reset = True
-        self.sim.render.antialiasing_mode = "OFF"  # disable dlss
+        self.sim.render.antialiasing_mode = "OFF"
 
-        # # change camera resolutions to save memory
-        # self.scene.table_cam.height = 720 // 4
-        # self.scene.table_cam.width = 1280 // 4
-        # self.scene.wrist_cam.height = 720 // 4
-        # self.scene.wrist_cam.width = 1280 // 4
-
-        # List of image observations in policy observations
         self.image_obs_list = ["table_cam", "wrist_cam"]
