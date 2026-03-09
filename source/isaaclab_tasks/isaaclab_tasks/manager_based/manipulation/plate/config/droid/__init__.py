@@ -4,8 +4,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import gymnasium as gym
 
-from . import kitchen_joint_pos_visuomotor_env_cfg
-from . import kitchen_ik_rel_visuomotor_env_cfg
+from . import (
+    plate_joint_pos_visuomotor_env_cfg,
+    plate_ik_rel_visuomotor_env_cfg,
+)
 
 ##
 # Register Gym environments.
@@ -16,10 +18,10 @@ from . import kitchen_ik_rel_visuomotor_env_cfg
 ##
 
 gym.register(
-    id="Isaac-Kitchen-Droid-Visuomotor-v0",
+    id="Isaac-Plate-Droid-Visuomotor-v0",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     kwargs={
-        "env_cfg_entry_point": kitchen_joint_pos_visuomotor_env_cfg.DroidKitchenJointPosVisuomotorEnvCfg,
+        "env_cfg_entry_point": plate_joint_pos_visuomotor_env_cfg.DroidPlateJointPosVisuomotorEnvCfg,
     },
     disable_env_checker=True,
 )
@@ -30,10 +32,10 @@ gym.register(
 # #
 
 gym.register(
-    id="Isaac-Kitchen-Droid-Visuomotor-IK-Rel-v0",
+    id="Isaac-Plate-Droid-Visuomotor-IK-Rel-v0",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     kwargs={
-        "env_cfg_entry_point": kitchen_ik_rel_visuomotor_env_cfg.DroidKitchenIkRelVisuomotorEnvCfg,
+        "env_cfg_entry_point": plate_ik_rel_visuomotor_env_cfg.DroidPlateIkRelVisuomotorEnvCfg,
     },
     disable_env_checker=True,
 )

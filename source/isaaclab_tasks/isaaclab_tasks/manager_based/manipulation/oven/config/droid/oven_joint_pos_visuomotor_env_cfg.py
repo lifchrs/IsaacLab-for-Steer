@@ -17,24 +17,61 @@ from isaaclab.sensors.frame_transformer.frame_transformer_cfg import OffsetCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, NVIDIA_NUCLEUS_DIR
 from isaaclab.utils.noise import GaussianNoiseCfg
+from isaaclab.assets import AssetBaseCfg
+from isaaclab.sim.spawners.from_files.from_files_cfg import UsdFileCfg
 
-from isaaclab_tasks.manager_based.manipulation.laptop import mdp
-from isaaclab_tasks.manager_based.manipulation.laptop.mdp import laptop_events
-from isaaclab_tasks.manager_based.manipulation.laptop.laptop_env_cfg import EventCfg as BaseEventCfg
-from isaaclab_tasks.manager_based.manipulation.laptop.laptop_env_cfg import LaptopEnvCfg
+from isaaclab_tasks.manager_based.manipulation.oven import mdp
+from isaaclab_tasks.manager_based.manipulation.oven.mdp import oven_events
+from isaaclab_tasks.manager_based.manipulation.oven.oven_env_cfg import EventCfg as BaseEventCfg
+from isaaclab_tasks.manager_based.manipulation.oven.oven_env_cfg import OVEN_SLOT_OFFSET, OvenEnvCfg
 
 from isaaclab_assets.robots.droid import DROID_CFG  # isort: skip
 from isaaclab.markers.config import FRAME_MARKER_CFG  # isort: skip
 
-from isaaclab_tasks.manager_based.manipulation.laptop.laptop_env_cfg import ASSET_INIT_POS
+ROBOT_INIT_POS = (3.0, 1.9, 0.2)
+ROBOT_INIT_ROT = (0.7071, 0.0, 0.0, -0.7071)
 
+ROBOT_TABLE_INIT_POS = (ROBOT_INIT_POS[0], ROBOT_INIT_POS[1], ROBOT_INIT_POS[2])
+ROBOT_TABLE_INIT_YAW_DEG = 0.0
+ROBOT_TABLE_INIT_ROT = (
+    float(np.cos(np.deg2rad(ROBOT_TABLE_INIT_YAW_DEG) / 2.0)),
+    0.0,
+    0.0,
+    float(np.sin(np.deg2rad(ROBOT_TABLE_INIT_YAW_DEG) / 2.0)),
+)
+
+OVEN_DEFAULT_POS = (3.0, 1.1, 0.35)
+OVEN_RANDOMIZE_POSE_RANGE = {
+    "x": (OVEN_DEFAULT_POS[0] - 0.1, OVEN_DEFAULT_POS[0] + 0.1),
+    "y": (OVEN_DEFAULT_POS[1] - 0.1, OVEN_DEFAULT_POS[1] + 0.1),
+    "z": (OVEN_DEFAULT_POS[2], OVEN_DEFAULT_POS[2]),
+    "roll": (0.0, 0.0),
+    "pitch": (0.0, 0.0),
+    "yaw": (np.pi, np.pi),
+}
+
+CAN_DEFAULT_POS = (2.6, 1.35, 0.22)
+CAN_RANDOMIZE_POSE_RANGE = {
+    "x": (CAN_DEFAULT_POS[0] - 0.1, CAN_DEFAULT_POS[0] + 0.2),
+    "y": (CAN_DEFAULT_POS[1] - 0.1, CAN_DEFAULT_POS[1] + 0.2),
+    "z": (CAN_DEFAULT_POS[2], CAN_DEFAULT_POS[2]),
+    "roll": (0.0, 0.0),
+    "pitch": (0.0, 0.0),
+    "yaw": (0.0, 0.0),
+}
 
 @configclass
 class EventCfg(BaseEventCfg):
     """Configuration for events."""
 
+    reset_all = EventTerm(
+        func=mdp.reset_scene_to_default,
+        mode="reset",
+        params={"reset_joint_targets": True},
+    )
+
     init_franka_arm_pose = EventTerm(
-        func=laptop_events.set_default_joint_pose,
+        func=oven_events.set_default_joint_pose,
         mode="reset",
         params={
             "default_pose": [
@@ -56,7 +93,7 @@ class EventCfg(BaseEventCfg):
     )
 
     randomize_franka_joint_state = EventTerm(
-        func=laptop_events.randomize_joint_by_gaussian_offset,
+        func=oven_events.randomize_joint_by_gaussian_offset,
         mode="reset",
         params={
             "mean": 0.0,
@@ -65,41 +102,34 @@ class EventCfg(BaseEventCfg):
         },
     )
 
-    randomize_object_positions = EventTerm(
-        func=laptop_events.randomize_object_pose,
+    # make_plate_dynamic = EventTerm(
+    #     func=oven_events.set_rigid_body_dynamic,
+    #     mode="prestartup",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("plate"),
+    #     },
+    # )
+
+    randomize_can_positions = EventTerm(
+        func=oven_events.randomize_object_pose,
         mode="reset",
         params={
-            "pose_range": {
-                "x": (0.55, 0.60),
-                "y": (-0.25, 0.15),
-                "z": (ASSET_INIT_POS[2], ASSET_INIT_POS[2]),
-                "yaw": (-0.5, 0.5),
-            },
-            "min_separation": 0.25,
-            "asset_cfgs": [
-                SceneEntityCfg("laptop"),
-            ],
+            "pose_range": CAN_RANDOMIZE_POSE_RANGE,
+            "asset_cfgs": [SceneEntityCfg("can")],
         },
     )
 
-    reset_laptop_joint_state = EventTerm(
-        func=laptop_events.set_laptop_default_joint_pose,
+    randomize_oven_positions = EventTerm(
+        func=oven_events.randomize_object_pose,
         mode="reset",
         params={
-            "asset_cfg": SceneEntityCfg("laptop"),
-        },
-    )
-
-    reset_table_joint_state = EventTerm(
-        func=laptop_events.set_table_default_joint_pose,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("table"),
+            "pose_range": OVEN_RANDOMIZE_POSE_RANGE,
+            "asset_cfgs": [SceneEntityCfg("oven")],
         },
     )
 
     randomize_light = EventTerm(
-        func=laptop_events.randomize_scene_lighting_domelight,
+        func=oven_events.randomize_scene_lighting_domelight,
         mode="reset",
         params={
             "intensity_range": (1500.0, 10000.0),
@@ -120,6 +150,15 @@ class EventCfg(BaseEventCfg):
             "default_intensity": 1500.0,
             "default_color": (0.75, 0.75, 0.75),
             # "default_texture": f"{NVIDIA_NUCLEUS_DIR}/Assets/Skies/Studio/photo_studio_01_4k.hdr",
+        },
+    )
+
+    sync_oven_button_to_door = EventTerm(
+        func=oven_events.sync_oven_button_to_door,
+        mode="interval",
+        interval_range_s=(0.0, 0.0),
+        params={
+            "oven_cfg": SceneEntityCfg("oven"),
         },
     )
 
@@ -169,35 +208,49 @@ class ObservationsCfg:
     class SubtaskCfg(ObsGroup):
         """Observations for subtask group."""
 
+        oven_opened = ObsTerm(
+            func=mdp.oven_opened,
+            params={
+                "oven_cfg": SceneEntityCfg("oven"),
+                "door_joint_name": "RevoluteJoint_oven_door",
+                "door_open_threshold": -0.05,
+            },
+        )
 
-        laptop_grasped = ObsTerm(
-            func=mdp.laptop_is_grasped,
+        grasp_can = ObsTerm(
+            func=mdp.object_grasped,
             params={
                 "robot_cfg": SceneEntityCfg("robot"),
                 "ee_frame_cfg": SceneEntityCfg("ee_frame"),
-                "laptop_cfg": SceneEntityCfg("laptop"),
-                "diff_threshold": 0.25,
+                "object_cfg": SceneEntityCfg("can"),
+                "diff_threshold": 0.1,
             },
         )
 
-        laptop_placed_in_drawer = ObsTerm(
-            func=mdp.laptop_is_in_drawer,
-            params={
-                "laptop_cfg": SceneEntityCfg("laptop"),
-                "table_cfg": SceneEntityCfg("table"),
-                "robot_cfg": SceneEntityCfg("robot"),
-            },
-        )
+        # can_in_oven = ObsTerm(
+        #     func=mdp.can_in_oven,
+        #     params={
+        #         "can_cfg": SceneEntityCfg("can"),
+        #         "oven_cfg": SceneEntityCfg("oven"),
+        #         "robot_cfg": SceneEntityCfg("robot"),
+        #         "door_joint_name": "RevoluteJoint_oven_door",
+        #         "slot_offset": OVEN_SLOT_OFFSET,
+        #         "can_in_oven_threshold": 0.12,
+        #         "door_open_threshold": 0.25,
+        #         "require_oven_open": True,
+        #         "require_gripper_open": True,
+        #     },
+        # )
 
-        laptop_closed = ObsTerm(
-            func=mdp.laptop_is_closed,
-            params={
-                "laptop_cfg": SceneEntityCfg("laptop"),
-                "lid_joint_name": "RevoluteJoint_computer_9_up",
-                # "closed_threshold": -1.2,
-            },
-        )
-        
+        # oven_closed = ObsTerm(
+        #     func=mdp.oven_closed,
+        #     params={
+        #         "oven_cfg": SceneEntityCfg("oven"),
+        #         "door_joint_name": "RevoluteJoint_oven_door",
+        #         "door_closed_threshold": 0.10,
+        #     },
+        # )
+
         def __post_init__(self):
             self.enable_corruption = False
             self.concatenate_terms = False
@@ -208,7 +261,9 @@ class ObservationsCfg:
 
 
 @configclass
-class DroidLaptopJointPosVisuomotorEnvCfg(LaptopEnvCfg):
+class DroidOvenJointPosVisuomotorEnvCfg(OvenEnvCfg):
+    """Configuration for oven task with Droid robot using joint position control."""
+
     observations: ObservationsCfg = ObservationsCfg()
 
     # Evaluation settings
@@ -222,7 +277,19 @@ class DroidLaptopJointPosVisuomotorEnvCfg(LaptopEnvCfg):
         # Set events
         self.events = EventCfg()
 
+        # Robot Table
+        self.scene.robot_table = AssetBaseCfg(
+            prim_path="{ENV_REGEX_NS}/RobotTable",
+            init_state=AssetBaseCfg.InitialStateCfg(pos=ROBOT_TABLE_INIT_POS, rot=ROBOT_TABLE_INIT_ROT),
+            spawn=UsdFileCfg(
+                usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/SeattleLabTable/table_instanceable.usd",
+                scale=(0.6, 0.3, 1.0),
+            ),
+        )
+
         self.scene.robot = DROID_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        self.scene.robot.init_state.pos = ROBOT_INIT_POS
+        self.scene.robot.init_state.rot = ROBOT_INIT_ROT
         self.scene.robot.spawn.semantic_tags = [("class", "robot")]
 
         # Set actions for the specific robot type (franka)
@@ -281,7 +348,7 @@ class DroidLaptopJointPosVisuomotorEnvCfg(LaptopEnvCfg):
 
         # Set table camera as the real-world camera
         self.scene.table_cam = CameraCfg(
-            prim_path="{ENV_REGEX_NS}/table_cam",
+            prim_path="{ENV_REGEX_NS}/Robot/panda_link0/table_cam",
             height=720,
             width=1280,
             data_types=["rgb"],
@@ -299,9 +366,9 @@ class DroidLaptopJointPosVisuomotorEnvCfg(LaptopEnvCfg):
                 clipping_range=(1e-4, 5),
             ),
             offset=CameraCfg.OffsetCfg(
-                pos=(0.104620336834421451, -0.4088594867462788, 0.654018368138419),
+                pos=(0.004620336834421451, -0.5388594867462788, 0.454018368138419),
                 # rot=(0.2595868830, 0.3175587775, 0.7575422903, 0.5078392969),
-                rot=(-0.3012355305, 0.8678666196, -0.3638063066, 0.1539794043),
+                rot=(-0.5078392969, 0.7575422903, -0.3175587775, 0.2595868830),
                 convention="ros",
             ),
         )

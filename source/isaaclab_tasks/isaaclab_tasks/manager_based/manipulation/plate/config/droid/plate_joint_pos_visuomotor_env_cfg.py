@@ -3,6 +3,8 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+import os
+import json
 import numpy as np
 import isaaclab.sim as sim_utils
 from isaaclab.managers import EventTermCfg as EventTerm
@@ -13,22 +15,56 @@ from isaaclab.sensors import CameraCfg
 from isaaclab.sensors import FrameTransformerCfg
 from isaaclab.sensors.frame_transformer.frame_transformer_cfg import OffsetCfg
 from isaaclab.utils import configclass
-from isaaclab.utils.assets import NVIDIA_NUCLEUS_DIR
+from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, NVIDIA_NUCLEUS_DIR
+from isaaclab.utils.noise import GaussianNoiseCfg
+from isaaclab.assets import AssetBaseCfg
+from isaaclab.sim.spawners.from_files.from_files_cfg import UsdFileCfg
 
-from isaaclab_tasks.manager_based.manipulation.kitchen import mdp
-from isaaclab_tasks.manager_based.manipulation.cylinder.mdp import cylinder_events
-from isaaclab_tasks.manager_based.manipulation.kitchen.kitchen_env_cfg import KitchenEnvCfg
+from isaaclab_tasks.manager_based.manipulation.plate import mdp
+from isaaclab_tasks.manager_based.manipulation.plate.mdp import plate_events
+from isaaclab_tasks.manager_based.manipulation.plate.plate_env_cfg import EventCfg as BaseEventCfg
+from isaaclab_tasks.manager_based.manipulation.plate.plate_env_cfg import PlateEnvCfg
 
 from isaaclab_assets.robots.droid import DROID_CFG  # isort: skip
 from isaaclab.markers.config import FRAME_MARKER_CFG  # isort: skip
 
+ROBOT_INIT_POS = (1.7, 4.4, 0.2)
+ROBOT_INIT_ROT = (0.7071, 0.0, 0.0, 0.7071)
+
+ROBOT_TABLE_INIT_POS = (ROBOT_INIT_POS[0], ROBOT_INIT_POS[1], ROBOT_INIT_POS[2])
+ROBOT_TABLE_INIT_YAW_DEG = 180.0
+ROBOT_TABLE_INIT_ROT = (
+    float(np.cos(np.deg2rad(ROBOT_TABLE_INIT_YAW_DEG) / 2.0)),
+    0.0,
+    0.0,
+    float(np.sin(np.deg2rad(ROBOT_TABLE_INIT_YAW_DEG) / 2.0)),
+)
+PLATE_DEFAULT_POS = (1.6, 4.8, 0.22)
+RACK_DEFAULT_POS = (2.0, 5.0, 0.22)
+PLATE_RANDOMIZE_POSE_RANGE = {
+    "x": (PLATE_DEFAULT_POS[0] - 0.3, PLATE_DEFAULT_POS[0] + 0.05),
+    "y": (PLATE_DEFAULT_POS[1], PLATE_DEFAULT_POS[1] + 0.10),
+    "z": (PLATE_DEFAULT_POS[2], PLATE_DEFAULT_POS[2]),
+    "roll": (0.0, 0.0),
+    "pitch": (0.0, 0.0),
+    "yaw": (0.0, 0.0),
+}
+
+RACK_RANDOMIZE_POSE_RANGE = {
+    "x": (RACK_DEFAULT_POS[0] - 0.05, RACK_DEFAULT_POS[0] + 0.1),
+    "y": (RACK_DEFAULT_POS[1] - 0.1, RACK_DEFAULT_POS[1] + 0.1),
+    "z": (RACK_DEFAULT_POS[2], RACK_DEFAULT_POS[2]),
+    "roll": (0.0, 0.0),
+    "pitch": (0.0, 0.0),
+    "yaw": (0.0, 0.0),
+}
 
 @configclass
-class EventCfg:
+class EventCfg(BaseEventCfg):
     """Configuration for events."""
 
     init_franka_arm_pose = EventTerm(
-        func=cylinder_events.set_default_joint_pose,
+        func=plate_events.set_default_joint_pose,
         mode="reset",
         params={
             "default_pose": [
@@ -50,17 +86,35 @@ class EventCfg:
     )
 
     randomize_franka_joint_state = EventTerm(
-        func=cylinder_events.randomize_joint_by_gaussian_offset,
+        func=plate_events.randomize_joint_by_gaussian_offset,
         mode="reset",
         params={
             "mean": 0.0,
-            "std": 0.02,
+            "std": 0.1,
             "asset_cfg": SceneEntityCfg("robot"),
         },
     )
 
+    randomize_plate_position = EventTerm(
+        func=plate_events.randomize_object_pose,
+        mode="reset",
+        params={
+            "pose_range": PLATE_RANDOMIZE_POSE_RANGE,
+            "asset_cfgs": [SceneEntityCfg("plate")],
+        },
+    )
+
+    randomize_rack_position = EventTerm(
+        func=plate_events.randomize_object_pose,
+        mode="reset",
+        params={
+            "pose_range": RACK_RANDOMIZE_POSE_RANGE,
+            "asset_cfgs": [SceneEntityCfg("rack")],
+        },
+    )
+
     randomize_light = EventTerm(
-        func=cylinder_events.randomize_scene_lighting_domelight,
+        func=plate_events.randomize_scene_lighting_domelight,
         mode="reset",
         params={
             "intensity_range": (1500.0, 10000.0),
@@ -80,7 +134,7 @@ class EventCfg:
             ],
             "default_intensity": 1500.0,
             "default_color": (0.75, 0.75, 0.75),
-            "default_texture": f"{NVIDIA_NUCLEUS_DIR}/Assets/Skies/Studio/photo_studio_01_4k.hdr",
+            # "default_texture": f"{NVIDIA_NUCLEUS_DIR}/Assets/Skies/Studio/photo_studio_01_4k.hdr",
         },
     )
 
@@ -110,6 +164,7 @@ class ObservationsCfg:
                 "data_type": "rgb",
                 "normalize": False,
             },
+            # noise=GaussianNoiseCfg(mean=0.0, std=15.0, operation="add"),
         )
         wrist_cam = ObsTerm(
             func=mdp.image,
@@ -118,30 +173,69 @@ class ObservationsCfg:
                 "data_type": "rgb",
                 "normalize": False,
             },
+            # noise=GaussianNoiseCfg(mean=0.0, std=15.0, operation="add"),
         )
 
         def __post_init__(self):
             self.enable_corruption = True
             self.concatenate_terms = False
 
+    @configclass
+    class SubtaskCfg(ObsGroup):
+        """Observations for subtask group."""
+
+        plate_grasped = ObsTerm(
+            func=mdp.object_grasped,
+            params={
+                "robot_cfg": SceneEntityCfg("robot"),
+                "ee_frame_cfg": SceneEntityCfg("ee_frame"),
+                "object_cfg": SceneEntityCfg("plate"),
+                "diff_threshold": 0.1,
+            },
+        )
+
+        def __post_init__(self):
+            self.enable_corruption = False
+            self.concatenate_terms = False
+
+    # observation groups
     policy: PolicyCfg = PolicyCfg()
+    subtask_terms: SubtaskCfg = SubtaskCfg()
 
 
 @configclass
-class DroidKitchenJointPosVisuomotorEnvCfg(KitchenEnvCfg):
+class DroidPlateJointPosVisuomotorEnvCfg(PlateEnvCfg):
+    """Configuration for wash task with Droid robot using joint position control."""
+
     observations: ObservationsCfg = ObservationsCfg()
 
+    # Evaluation settings
     eval_mode = False
     eval_type = None
 
     def __post_init__(self):
+        # post init of parent
         super().__post_init__()
 
+        # Set events
         self.events = EventCfg()
 
+        # Robot Table
+        self.scene.robot_table = AssetBaseCfg(
+            prim_path="{ENV_REGEX_NS}/RobotTable",
+            init_state=AssetBaseCfg.InitialStateCfg(pos=ROBOT_TABLE_INIT_POS, rot=ROBOT_TABLE_INIT_ROT),
+            spawn=UsdFileCfg(
+                usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/SeattleLabTable/table_instanceable.usd",
+                scale=(0.6, 0.3, 1.0),
+            ),
+        )
+
         self.scene.robot = DROID_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        self.scene.robot.init_state.pos = ROBOT_INIT_POS
+        self.scene.robot.init_state.rot = ROBOT_INIT_ROT
         self.scene.robot.spawn.semantic_tags = [("class", "robot")]
 
+        # Set actions for the specific robot type (franka)
         self.actions.arm_action = mdp.JointPositionActionCfg(
             asset_name="robot",
             joint_names=["panda_joint.*"],
@@ -156,10 +250,12 @@ class DroidKitchenJointPosVisuomotorEnvCfg(KitchenEnvCfg):
             close_command_expr={"finger_joint": np.pi / 4},
         )
 
+        # utilities for gripper status check
         self.gripper_joint_names = ["right_outer_knuckle_joint", "finger_joint"]
         self.gripper_open_val = 0.0
         self.gripper_threshold = 0.005
 
+        # Listens to the required transforms
         marker_cfg = FRAME_MARKER_CFG.copy()
         marker_cfg.markers["frame"].scale = (0.1, 0.1, 0.1)
         marker_cfg.prim_path = "/Visuals/FrameTransformer"
@@ -193,25 +289,34 @@ class DroidKitchenJointPosVisuomotorEnvCfg(KitchenEnvCfg):
             ],
         )
 
+        # Set table camera as the real-world camera
         self.scene.table_cam = CameraCfg(
-            prim_path="{ENV_REGEX_NS}/table_cam",
+            prim_path="{ENV_REGEX_NS}/Robot/panda_link0/table_cam",
             height=720,
             width=1280,
             data_types=["rgb"],
+            # spawn=sim_utils.PinholeCameraCfg(
+            #     focal_length=2.1,
+            #     focus_distance=28.0,
+            #     horizontal_aperture=5.376,
+            #     vertical_aperture=3.024,
+            #     clipping_range=(1e-4, 5),
+            # ),
             spawn=sim_utils.PinholeCameraCfg(
-                focal_length=2.1,
-                focus_distance=28.0,
-                horizontal_aperture=5.376,
-                vertical_aperture=3.024,
+                focal_length=1.0476,
+                horizontal_aperture=2.5452,
+                vertical_aperture=1.4721,
                 clipping_range=(1e-4, 5),
             ),
             offset=CameraCfg.OffsetCfg(
                 pos=(0.004620336834421451, -0.5388594867462788, 0.454018368138419),
+                # rot=(0.2595868830, 0.3175587775, 0.7575422903, 0.5078392969),
                 rot=(-0.5078392969, 0.7575422903, -0.3175587775, 0.2595868830),
                 convention="ros",
             ),
         )
 
+        # Set wrist camera
         self.scene.wrist_cam = CameraCfg(
             prim_path="{ENV_REGEX_NS}/Robot/Gripper/Robotiq_2F_85/base_link/wrist_cam",
             height=720,
@@ -230,7 +335,15 @@ class DroidKitchenJointPosVisuomotorEnvCfg(KitchenEnvCfg):
             ),
         )
 
+        # Set settings for camera rendering
         self.rerender_on_reset = True
-        self.sim.render.antialiasing_mode = "OFF"
+        self.sim.render.antialiasing_mode = "OFF"  # disable dlss
 
+        # # change camera resolutions to save memory
+        # self.scene.table_cam.height = 720 / 4
+        # self.scene.table_cam.width = 1280 / 4
+        # self.scene.wrist_cam.height = 720 / 4
+        # self.scene.wrist_cam.width = 1280 / 4
+
+        # List of image observations in policy observations
         self.image_obs_list = ["table_cam", "wrist_cam"]

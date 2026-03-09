@@ -3,8 +3,9 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""This sub-module contains the functions that are specific to the kitchen environments."""
+"""MDP terms specific to the oven environments."""
 
 from isaaclab.envs.mdp import *  # noqa: F401, F403
 
-from isaaclab_tasks.manager_based.manipulation.cylinder.mdp.observations import *  # noqa: F401, F403
+from .observations import *  # noqa: F401, F403
+from .terminations import *  # noqa: F401, F403

@@ -411,6 +411,22 @@ def annotate_episode_in_auto_mode(
             if not torch.any(signal_flags):
                 is_episode_annotated_successfully = False
                 print(f'\tDid not detect completion for the subtask "{signal_name}".')
+        for eef_name, eef_subtask_configs in env.cfg.subtask_configs.items():
+            term_signal_names = [subtask_config.subtask_term_signal for subtask_config in eef_subtask_configs[:-1]]
+            activation_boundaries = []
+            for signal_name in term_signal_names:
+                signal_flags = torch.tensor(subtask_term_signal_dict[signal_name], device=env.device).reshape(-1)
+                active_indices = torch.nonzero(signal_flags, as_tuple=False)
+                if active_indices.numel() == 0:
+                    continue
+                activation_boundaries.append((signal_name, int(active_indices[0][0]) + 1))
+            ordered_activation_boundaries = sorted(activation_boundaries, key=lambda item: item[1])
+            if activation_boundaries != ordered_activation_boundaries:
+                is_episode_annotated_successfully = False
+                print(
+                    f'\tSubtask term signals for eef "{eef_name}" are not in configured order:'
+                    f" {activation_boundaries}. Expected chronological order for dataset generation."
+                )
         if args_cli.annotate_subtask_start_signals:
             subtask_start_signal_dict = annotated_episode.data["obs"]["datagen_info"]["subtask_start_signals"]
             for signal_name, signal_flags in subtask_start_signal_dict.items():

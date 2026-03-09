@@ -14,6 +14,7 @@ from isaaclab.assets import RigidObjectCfg
 from isaaclab.sim.schemas.schemas_cfg import RigidBodyPropertiesCfg, MassPropertiesCfg
 from isaaclab.devices.openxr import XrCfg
 from isaaclab.envs import ManagerBasedRLEnvCfg
+from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.managers import SceneEntityCfg
@@ -25,21 +26,22 @@ from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 
 from . import mdp
+from .mdp import laptop_events
 
 CHILDRENROOM_ASSET_DIR = os.path.join(
     os.path.dirname(__file__),
     "../../../../../../assets/ArtVIP/Interactive_scene/childrenroom",
 )
 
-ROOM_INIT_POS = [-4.3, -0.8, -0.6]
+ROOM_INIT_POS = [-4.3, -0.7, -0.6]
 ROOM_INIT_ROT = [1.0, 0.0, 0.0, 0.0]
 # ROOM_INIT_ROT = [0.7071068, 0.0, 0.0, -0.7071068]
 
-TABLE_INIT_POS = [0.70, 0.1, -0.6]
+TABLE_INIT_POS = [0.80, 0.2, -0.6]
 # TABLE_INIT_POS = [0.0, 0.0, 0.0]
 TABLE_INIT_ROT = [0.7071068, 0.0, 0.0, -0.7071068]
 # TABLE_INIT_ROT = [1.0, 0.0, 0.0, 0.0]
-ASSET_INIT_POS = [0.6, 0.0, 0.2]
+ASSET_INIT_POS = [0.7, 0.1, 0.2]
 ASSET_INIT_ROT = [0.7071068, 0.0, 0.0, -0.7071068]
 
 rigid_body_properties = RigidBodyPropertiesCfg(
@@ -57,7 +59,7 @@ kinematic_body_properties = RigidBodyPropertiesCfg(
 )
 
 mass_properties = MassPropertiesCfg(
-    mass=0.05,  # Mass in kg
+    mass=0.0001,  # Mass in kg
     # Alternative: use density instead of mass
     # density=1000.0,  # Density in kg/m³
 )
@@ -104,7 +106,7 @@ class LaptopSceneCfg(InteractiveSceneCfg):
                 "PrismaticJoint_table_3_left2": 0.0,
                 "PrismaticJoint_table_3_left3": 0.0,
                 "PrismaticJoint_table_3_left4": 0.0,
-                "PrismaticJoint_table_3_right1": 0.1,
+                "PrismaticJoint_table_3_right1": 0.25,
                 "PrismaticJoint_table_3_right2": 0.0,
                 "PrismaticJoint_table_3_right3": 0.0,
                 "PrismaticJoint_table_3_right4": 0.0,
@@ -114,7 +116,7 @@ class LaptopSceneCfg(InteractiveSceneCfg):
             "table_joints": ImplicitActuatorCfg(
                 joint_names_expr=["PrismaticJoint_table_3_.*"],
                 effort_limit_sim=None,
-                stiffness=None,
+                stiffness=0.0,
                 damping=None,
             ),
         },
@@ -127,6 +129,7 @@ class LaptopSceneCfg(InteractiveSceneCfg):
             usd_path=os.path.abspath(
                 os.path.join(CHILDRENROOM_ASSET_DIR, "computer_9/model_computer_9.usd")
             ),
+            scale=(0.6, 0.6, 1.0),
             articulation_props=sim_utils.ArticulationRootPropertiesCfg(
                 fix_root_link=False,
             ),
@@ -135,25 +138,25 @@ class LaptopSceneCfg(InteractiveSceneCfg):
             pos=ASSET_INIT_POS,
             rot=ASSET_INIT_ROT,
             joint_pos={
-                "RevoluteJoint_computer_9_up": -0.8,
+                "RevoluteJoint_computer_9_up": -0.85,
             },
         ),
-        # actuators={
-        #     "lid": ImplicitActuatorCfg(
-        #         joint_names_expr=["RevoluteJoint_computer_9_up"],
-        #         effort_limit_sim=87.0,
-        #         stiffness=100.0,
-        #         damping=100.0,
-        #     ),
-        # },
         actuators={
             "lid": ImplicitActuatorCfg(
                 joint_names_expr=["RevoluteJoint_computer_9_up"],
-                effort_limit_sim=None,
-                stiffness=None,
-                damping=None,
+                effort_limit_sim=87.0,
+                stiffness=0.0,
+                damping=900.0,
             ),
         },
+        # actuators={
+        #     "lid": ImplicitActuatorCfg(
+        #         joint_names_expr=["RevoluteJoint_computer_9_up"],
+        #         effort_limit_sim=None,
+        #         stiffness=None,
+        #         damping=None,
+        #     ),
+        # },
     )
 
     # Childrenroom walls and floor
@@ -188,7 +191,7 @@ class LaptopSceneCfg(InteractiveSceneCfg):
     plant = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/plant",
         init_state=AssetBaseCfg.InitialStateCfg(
-            pos=[0.65, -0.35, 0.2], rot=[0.7071068, 0.0, 0.0, -0.7071068]
+            pos=[0.65, -0.45, 0.15], rot=[0.7071068, 0.0, 0.0, -0.7071068]
         ),
         spawn=UsdFileCfg(
             usd_path=os.path.abspath(
@@ -231,6 +234,21 @@ class ActionsCfg:
 
 
 @configclass
+class EventCfg:
+    """Configuration for startup events."""
+
+    apply_laptop_mass_props = EventTerm(
+        func=laptop_events.apply_mass_props,
+        mode="prestartup",
+        params={
+            "asset_cfg": SceneEntityCfg("laptop"),
+            "mass": mass_properties.mass,
+            "density": mass_properties.density,
+        },
+    )
+
+
+@configclass
 class ObservationsCfg:
     """Observation specifications for the MDP."""
 
@@ -262,24 +280,33 @@ class ObservationsCfg:
     class SubtaskCfg(ObsGroup):
         """Observations for subtask group."""
 
-        # grasp_1 = ObsTerm(
-        #     func=mdp.object_grasped,
-        #     params={
-        #         "robot_cfg": SceneEntityCfg("robot"),
-        #         "ee_frame_cfg": SceneEntityCfg("ee_frame"),
-        #         "object_cfg": SceneEntityCfg("cylinder"),
-        #         "diff_threshold": 0.1,
-        #     },
-        # )
+        laptop_grasped = ObsTerm(
+            func=mdp.laptop_is_grasped,
+            params={
+                "robot_cfg": SceneEntityCfg("robot"),
+                "ee_frame_cfg": SceneEntityCfg("ee_frame"),
+                "laptop_cfg": SceneEntityCfg("laptop"),
+                "diff_threshold": 0.25,
+            },
+        )
 
-        # place_1 = ObsTerm(
-        #     func=mdp.cylinder_placed,
-        #     params={
-        #         "robot_cfg": SceneEntityCfg("robot"),
-        #         "object_cfg": SceneEntityCfg("cylinder"),
-        #         "desired_height": 0.044,
-        #     },
-        # )
+        laptop_placed_in_drawer = ObsTerm(
+            func=mdp.laptop_is_in_drawer,
+            params={
+                "laptop_cfg": SceneEntityCfg("laptop"),
+                "table_cfg": SceneEntityCfg("table"),
+                "robot_cfg": SceneEntityCfg("robot"),
+            },
+        )
+
+        laptop_closed = ObsTerm(
+            func=mdp.laptop_is_closed,
+            params={
+                "laptop_cfg": SceneEntityCfg("laptop"),
+                "lid_joint_name": "RevoluteJoint_computer_9_up",
+                # "closed_threshold": -1.2,
+            },
+        )
         
         def __post_init__(self):
             self.enable_corruption = False
@@ -320,12 +347,12 @@ class LaptopEnvCfg(ManagerBasedRLEnvCfg):
     observations: ObservationsCfg = ObservationsCfg()
     actions: ActionsCfg = ActionsCfg()
     # MDP settings
+    events: EventCfg = EventCfg()
     terminations: TerminationsCfg = TerminationsCfg()
 
     # Unused managers
     commands = None
     rewards = None
-    events = None
     curriculum = None
 
     xr: XrCfg = XrCfg(

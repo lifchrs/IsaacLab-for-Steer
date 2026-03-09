@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import asyncio
+import warnings
 
 from isaaclab.utils.datasets import EpisodeData, HDF5DatasetFileHandler
 
@@ -86,7 +87,69 @@ class DataGenInfoPool:
         else:
             self._add_episode(episode)
 
-    def _add_episode(self, episode: EpisodeData):
+    @staticmethod
+    def _get_first_activation_boundary(
+        signal, signal_name: str, episode_name: str | None = None
+    ) -> int:
+        """Return the first timestep boundary where a subtask signal becomes active."""
+        signal_tensor = signal.flatten().int()
+        active_indices = signal_tensor.nonzero()
+        if len(active_indices) == 0:
+            episode_desc = f" in episode '{episode_name}'" if episode_name is not None else ""
+            raise ValueError(
+                f"subtask termination signal '{signal_name}' never activates{episode_desc}"
+            )
+        return int(active_indices[0][0]) + 1
+
+    def _get_non_skillgen_subtask_boundaries(
+        self,
+        ep_datagen_info_obj: DatagenInfo,
+        actions_len: int,
+        eef_name: str,
+        episode_name: str | None = None,
+    ) -> list[tuple[int, int]]:
+        """Infer sequential subtask boundaries from the first activation of each non-final signal."""
+        configured_signal_names = self.subtask_term_signal_names[eef_name][:-1]
+        signal_boundaries = []
+        for signal_name in configured_signal_names:
+            end_index = self._get_first_activation_boundary(
+                ep_datagen_info_obj.subtask_term_signals[signal_name],
+                signal_name=signal_name,
+                episode_name=episode_name,
+            )
+            signal_boundaries.append((signal_name, end_index))
+
+        ordered_signal_boundaries = sorted(signal_boundaries, key=lambda item: item[1])
+        if signal_boundaries != ordered_signal_boundaries and len(signal_boundaries) > 1:
+            episode_desc = f" in episode '{episode_name}'" if episode_name is not None else ""
+            warnings.warn(
+                f"Subtask termination activations for eef '{eef_name}'{episode_desc} are not in configured order "
+                f"{signal_boundaries}; using chronological order {ordered_signal_boundaries} to build boundaries.",
+                stacklevel=2,
+            )
+
+        eef_subtask_boundaries = []
+        start_index = 0
+        for _, end_index in ordered_signal_boundaries:
+            if end_index <= start_index:
+                episode_desc = f" in episode '{episode_name}'" if episode_name is not None else ""
+                raise ValueError(
+                    f"subtask termination signal is not increasing{episode_desc}: {end_index} should be greater than"
+                    f" {start_index}"
+                )
+            eef_subtask_boundaries.append((start_index, end_index))
+            start_index = end_index
+
+        if actions_len <= start_index:
+            episode_desc = f" in episode '{episode_name}'" if episode_name is not None else ""
+            raise ValueError(
+                f"last subtask is empty{episode_desc}: episode length {actions_len} should be greater than"
+                f" {start_index}"
+            )
+        eef_subtask_boundaries.append((start_index, actions_len))
+        return eef_subtask_boundaries
+
+    def _add_episode(self, episode: EpisodeData, episode_name: str | None = None):
         """
         Add a datagen info from the given episode.
 
@@ -128,10 +191,10 @@ class DataGenInfoPool:
         for eef_name in self.subtask_term_signal_names.keys():
             if eef_name not in self._subtask_boundaries:
                 self._subtask_boundaries[eef_name] = []
-            prev_subtask_term_index = 0
-            eef_subtask_boundaries = []
-            for eef_subtask_index, eef_subtask_signal_name in enumerate(self.subtask_term_signal_names[eef_name]):
-                if self.env_cfg.datagen_config.use_skillgen:
+            if self.env_cfg.datagen_config.use_skillgen:
+                prev_subtask_term_index = 0
+                eef_subtask_boundaries = []
+                for eef_subtask_index, eef_subtask_signal_name in enumerate(self.subtask_term_signal_names[eef_name]):
                     # For skillgen, the start of a subtask is explicitly defined in the demonstration data.
                     if ep_datagen_info_obj.subtask_start_signals is None:
                         raise ValueError(
@@ -146,29 +209,34 @@ class DataGenInfoPool:
                     diffs = subtask_start_indicators[1:] - subtask_start_indicators[:-1]
                     # The first non-zero element's index gives the start of the subtask.
                     start_index = int(diffs.nonzero()[0][0]) + 1
-                else:
-                    # Without skillgen, subtasks are assumed to be sequential.
-                    start_index = prev_subtask_term_index
 
-                if eef_subtask_index == len(self.subtask_term_signal_names[eef_name]) - 1:
-                    # Last subtask has no termination signal from the datagen_info
-                    end_index = ep_grp["actions"].shape[0]
-                else:
-                    # Trick to detect index where first 0 -> 1 transition occurs - this will be the end of the subtask
-                    subtask_term_indicators = (
-                        ep_datagen_info_obj.subtask_term_signals[eef_subtask_signal_name].flatten().int()
-                    )
-                    diffs = subtask_term_indicators[1:] - subtask_term_indicators[:-1]
-                    end_index = int(diffs.nonzero()[0][0]) + 1
-                    end_index = end_index + 1  # increment to support indexing like demo[start:end]
+                    if eef_subtask_index == len(self.subtask_term_signal_names[eef_name]) - 1:
+                        # Last subtask has no termination signal from the datagen_info
+                        end_index = ep_grp["actions"].shape[0]
+                    else:
+                        # Trick to detect index where first 0 -> 1 transition occurs - this will be the end
+                        # of the subtask.
+                        subtask_term_indicators = (
+                            ep_datagen_info_obj.subtask_term_signals[eef_subtask_signal_name].flatten().int()
+                        )
+                        diffs = subtask_term_indicators[1:] - subtask_term_indicators[:-1]
+                        end_index = int(diffs.nonzero()[0][0]) + 1
+                        end_index = end_index + 1  # increment to support indexing like demo[start:end]
 
-                if end_index <= start_index:
-                    raise ValueError(
-                        f"subtask termination signal is not increasing: {end_index} should be greater than"
-                        f" {start_index}"
-                    )
-                eef_subtask_boundaries.append((start_index, end_index))
-                prev_subtask_term_index = end_index
+                    if end_index <= start_index:
+                        raise ValueError(
+                            f"subtask termination signal is not increasing: {end_index} should be greater than"
+                            f" {start_index}"
+                        )
+                    eef_subtask_boundaries.append((start_index, end_index))
+                    prev_subtask_term_index = end_index
+            else:
+                eef_subtask_boundaries = self._get_non_skillgen_subtask_boundaries(
+                    ep_datagen_info_obj=ep_datagen_info_obj,
+                    actions_len=ep_grp["actions"].shape[0],
+                    eef_name=eef_name,
+                    episode_name=episode_name,
+                )
 
             if self.env_cfg.datagen_config.use_skillgen:
                 # With skillgen, both start and end boundaries can be randomized.
@@ -222,4 +290,4 @@ class DataGenInfoPool:
             if select_demo_keys is not None and episode_name not in select_demo_keys:
                 continue
             episode = dataset_file_handler.load_episode(episode_name, self.device)
-            self._add_episode(episode)
+            self._add_episode(episode, episode_name=episode_name)
