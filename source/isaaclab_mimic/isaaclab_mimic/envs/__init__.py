@@ -89,6 +89,11 @@ from .droid_oven_ik_rel_visuomotor_mimic_env_cfg import (
     DroidOvenIKRelVisuomotorMimicEnvCfg,
 )
 
+from .droid_plate_ik_rel_mimic_env import DroidPlateIKRelMimicEnv
+from .droid_plate_ik_rel_visuomotor_mimic_env_cfg import (
+    DroidPlateIKRelVisuomotorMimicEnvCfg,
+)
+
 ##
 # Inverse Kinematics - Relative Pose Control
 ##
@@ -423,6 +428,20 @@ gym.register(
     entry_point="isaaclab_mimic.envs:DroidOvenIKRelMimicEnv",
     kwargs={
         "env_cfg_entry_point": droid_oven_ik_rel_visuomotor_mimic_env_cfg.DroidOvenIKRelVisuomotorMimicEnvCfg,
+    },
+    disable_env_checker=True,
+)
+
+
+##
+# Droid Plate
+##
+
+gym.register(
+    id="Isaac-Plate-Droid-IK-Rel-Visuomotor-Mimic-v0",
+    entry_point="isaaclab_mimic.envs:DroidPlateIKRelMimicEnv",
+    kwargs={
+        "env_cfg_entry_point": droid_plate_ik_rel_visuomotor_mimic_env_cfg.DroidPlateIKRelVisuomotorMimicEnvCfg,
     },
     disable_env_checker=True,
 )

@@ -213,7 +213,7 @@ class ObservationsCfg:
             params={
                 "oven_cfg": SceneEntityCfg("oven"),
                 "door_joint_name": "RevoluteJoint_oven_door",
-                "door_open_threshold": -0.05,
+                "door_open_threshold": -0.01,
             },
         )
 

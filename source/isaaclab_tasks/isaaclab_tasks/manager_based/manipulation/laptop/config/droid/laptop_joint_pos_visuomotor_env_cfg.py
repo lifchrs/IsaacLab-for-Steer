@@ -70,8 +70,8 @@ class EventCfg(BaseEventCfg):
         mode="reset",
         params={
             "pose_range": {
-                "x": (0.55, 0.60),
-                "y": (-0.25, 0.15),
+                "x": (0.55, 0.62),
+                "y": (-0.25, 0.18),
                 "z": (ASSET_INIT_POS[2], ASSET_INIT_POS[2]),
                 "yaw": (-0.5, 0.5),
             },

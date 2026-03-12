@@ -8,6 +8,9 @@
 
 
 import argparse
+import cv2
+from datetime import datetime
+import numpy as np
 
 from isaaclab.app import AppLauncher
 
@@ -38,6 +41,26 @@ parser.add_argument(
     default=False,
     help="Enable Pinocchio.",
 )
+parser.add_argument(
+    "--save_camera_videos",
+    action="store_true",
+    default=False,
+    help="Save per-episode camera observations from replay into MP4 videos.",
+)
+parser.add_argument(
+    "--camera_keys",
+    type=str,
+    nargs="+",
+    default=["table_cam", "wrist_cam"],
+    help="Camera observation keys to save when --save_camera_videos is enabled.",
+)
+parser.add_argument(
+    "--video_output_dir",
+    type=str,
+    default="./videos/replay_demos",
+    help="Directory where replay camera videos are stored.",
+)
+parser.add_argument("--video_fps", type=int, default=30, help="Frame rate for saved replay videos.")
 
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
@@ -81,6 +104,93 @@ def play_cb():
 def pause_cb():
     global is_paused
     is_paused = True
+
+
+def sanitize_file_component(value: str) -> str:
+    """Sanitize a string for safe file naming."""
+    return value.replace(os.sep, "_").replace(" ", "_").replace(":", "_")
+
+
+def prepare_video_frame(image: np.ndarray) -> np.ndarray:
+    """Convert a camera observation into a uint8 BGR frame for OpenCV."""
+    if image.ndim == 3 and image.shape[0] in (1, 3, 4) and image.shape[-1] not in (1, 3, 4):
+        image = np.transpose(image, (1, 2, 0))
+
+    if image.ndim == 2:
+        image = np.repeat(image[..., None], 3, axis=2)
+    elif image.ndim != 3:
+        raise ValueError(f"Expected image with 2 or 3 dims, got shape {image.shape}.")
+
+    if image.shape[2] == 1:
+        image = np.repeat(image, 3, axis=2)
+    elif image.shape[2] == 4:
+        image = image[:, :, :3]
+    elif image.shape[2] != 3:
+        raise ValueError(f"Expected image with 1, 3, or 4 channels, got shape {image.shape}.")
+
+    if image.dtype != np.uint8:
+        image = image.astype(np.float32)
+        if image.max() <= 1.0:
+            image = image * 255.0
+        image = np.clip(image, 0.0, 255.0).astype(np.uint8)
+
+    return cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+
+
+def close_video_recorders(recorder_state: dict):
+    """Release any active writers for the current episode."""
+    for camera_key, writer in recorder_state["writers"].items():
+        writer.release()
+        output_path = recorder_state["paths"][camera_key]
+        frame_count = recorder_state["frame_counts"][camera_key]
+        print(f"Saved {camera_key} video: {output_path} ({frame_count} frames)")
+    recorder_state["writers"].clear()
+    recorder_state["paths"].clear()
+    recorder_state["frame_counts"].clear()
+    recorder_state["episode_index"] = None
+    recorder_state["episode_name"] = None
+
+
+def record_camera_frames(
+    obs: dict,
+    env_id: int,
+    recorder_state: dict,
+    output_dir: str,
+    fps: int,
+    camera_keys: list[str],
+):
+    """Write one frame per requested camera from the current observation."""
+    if not isinstance(obs, dict):
+        return
+
+    policy_obs = obs.get("policy", obs)
+    if not isinstance(policy_obs, dict):
+        return
+
+    for camera_key in camera_keys:
+        if camera_key not in policy_obs:
+            continue
+
+        image = policy_obs[camera_key][env_id]
+        if isinstance(image, torch.Tensor):
+            image = image.detach().cpu().numpy()
+        else:
+            image = np.asarray(image)
+        frame = prepare_video_frame(image)
+
+        if camera_key not in recorder_state["writers"]:
+            height, width = frame.shape[:2]
+            episode_index = recorder_state["episode_index"]
+            episode_name = sanitize_file_component(recorder_state["episode_name"])
+            file_name = f"episode_{episode_index:04d}_{episode_name}_env_{env_id}_{camera_key}.mp4"
+            output_path = os.path.join(output_dir, file_name)
+            fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+            recorder_state["writers"][camera_key] = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+            recorder_state["paths"][camera_key] = output_path
+            recorder_state["frame_counts"][camera_key] = 0
+
+        recorder_state["writers"][camera_key].write(frame)
+        recorder_state["frame_counts"][camera_key] += 1
 
 
 def compare_states(state_from_dataset, runtime_state, runtime_env_index) -> (bool, str):
@@ -150,6 +260,19 @@ def main():
     # create environment from loaded config
     env = gym.make(args_cli.task, cfg=env_cfg).unwrapped
 
+    video_output_dir = None
+    camera_recorders = None
+    if args_cli.save_camera_videos:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_dir_name = f"{sanitize_file_component(env_name)}_{timestamp}"
+        video_output_dir = os.path.join(args_cli.video_output_dir, output_dir_name)
+        os.makedirs(video_output_dir, exist_ok=True)
+        camera_recorders = [
+            {"episode_index": None, "episode_name": None, "writers": {}, "paths": {}, "frame_counts": {}}
+            for _ in range(num_envs)
+        ]
+        print(f"Saving replay camera videos to: {video_output_dir}")
+
     teleop_interface = Se3Keyboard(Se3KeyboardCfg(pos_sensitivity=0.1, rot_sensitivity=0.1))
     teleop_interface.add_callback("N", play_cb)
     teleop_interface.add_callback("B", pause_cb)
@@ -195,12 +318,17 @@ def main():
                             next_episode_index = None
 
                         if next_episode_index is not None:
+                            if args_cli.save_camera_videos:
+                                close_video_recorders(camera_recorders[env_id])
                             replayed_episode_count += 1
                             print(f"{replayed_episode_count :4}: Loading #{next_episode_index} episode to env_{env_id}")
                             episode_data = dataset_file_handler.load_episode(
                                 episode_names[next_episode_index], env.device
                             )
                             env_episode_data_map[env_id] = episode_data
+                            if args_cli.save_camera_videos:
+                                camera_recorders[env_id]["episode_index"] = next_episode_index
+                                camera_recorders[env_id]["episode_name"] = episode_names[next_episode_index]
                             # Set initial state for the new episode
                             initial_state = episode_data.get_initial_state()
                             env.reset_to(initial_state, torch.tensor([env_id], device=env.device), is_relative=True)
@@ -218,7 +346,20 @@ def main():
                     while is_paused:
                         env.sim.render()
                         continue
-                env.step(actions)
+                obs, _, _, _, _ = env.step(actions)
+
+                if args_cli.save_camera_videos:
+                    for env_id in range(num_envs):
+                        if camera_recorders[env_id]["episode_index"] is None:
+                            continue
+                        record_camera_frames(
+                            obs=obs,
+                            env_id=env_id,
+                            recorder_state=camera_recorders[env_id],
+                            output_dir=video_output_dir,
+                            fps=args_cli.video_fps,
+                            camera_keys=args_cli.camera_keys,
+                        )
 
                 if state_validation_enabled:
                     state_from_dataset = env_episode_data_map[0].get_next_state()
@@ -235,6 +376,9 @@ def main():
                             print("\t- mismatched.")
                             print(comparison_log)
             break
+    if args_cli.save_camera_videos:
+        for recorder_state in camera_recorders:
+            close_video_recorders(recorder_state)
     # Close environment after replay in complete
     plural_trailing_s = "s" if replayed_episode_count > 1 else ""
     print(f"Finished replaying {replayed_episode_count} episode{plural_trailing_s}.")

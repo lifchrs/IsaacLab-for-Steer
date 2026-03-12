@@ -118,7 +118,7 @@ def object_grasped(
     object_pos = object.data.root_pos_w
     end_effector_pos = ee_frame.data.target_pos_w[:, 0, :]
     pose_diff = torch.linalg.vector_norm(object_pos - end_effector_pos, dim=1)
-    print(f"pose_diff: {pose_diff}")
+    # print(f"pose_diff: {pose_diff}")
 
     if hasattr(env.scene, "surface_grippers") and len(env.scene.surface_grippers) > 0:
         surface_gripper = env.scene.surface_grippers["surface_gripper"]

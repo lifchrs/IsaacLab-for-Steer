@@ -61,6 +61,12 @@ parser.add_argument(
     default=False,
     help="use skillgen to generate motion trajectories",
 )
+parser.add_argument(
+    "--seed",
+    type=int,
+    default=None,
+    help="Override the dataset-generation seed from the task config.",
+)
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
 # parse the arguments
@@ -124,6 +130,9 @@ def main():
         generation_num_trials=args_cli.generation_num_trials,
     )
 
+    if args_cli.seed is not None:
+        env_cfg.datagen_config.seed = args_cli.seed
+
     termination_terms = env_cfg.termination_terms
 
     # Create environment
@@ -148,6 +157,7 @@ def main():
     random.seed(env.cfg.datagen_config.seed)
     np.random.seed(env.cfg.datagen_config.seed)
     torch.manual_seed(env.cfg.datagen_config.seed)
+    print(f"Generation seed: {env.cfg.datagen_config.seed}")
 
     # Reset before starting
     env.reset()

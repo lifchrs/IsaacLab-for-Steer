@@ -90,7 +90,7 @@ def task_done_plate(
     pos_diff = plate.data.root_pos_w - rack.data.root_pos_w
     xy_dist = torch.linalg.vector_norm(pos_diff[:, :2], dim=1)
     z_dist = torch.abs(plate.data.root_pos_w[:, 2] - desired_z)
-    print(f"xy_dist: {xy_dist}, z_height: {plate.data.root_pos_w[:, 2]}")
+    # print(f"xy_dist: {xy_dist}, z_height: {plate.data.root_pos_w[:, 2]}")
     on_rack = torch.logical_and(xy_dist <= rack_xy_threshold, z_dist <= z_threshold)
 
     if require_gripper_open:

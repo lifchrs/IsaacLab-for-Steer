@@ -10,9 +10,9 @@ import isaaclab.utils.math as PoseUtils
 from isaaclab.envs import ManagerBasedRLMimicEnv
 
 
-class DroidOvenIKRelMimicEnv(ManagerBasedRLMimicEnv):
+class DroidPlateIKRelMimicEnv(ManagerBasedRLMimicEnv):
     """
-    Isaac Lab Mimic environment wrapper class for Droid Oven IK Rel env.
+    Isaac Lab Mimic environment wrapper class for Droid Plate IK Rel env.
     """
 
     # should terminate (used for data generation)
@@ -34,10 +34,8 @@ class DroidOvenIKRelMimicEnv(ManagerBasedRLMimicEnv):
         if env_ids is None:
             env_ids = slice(None)
 
-        # Retrieve end effector pose from the observation buffer
         eef_pos = self.obs_buf["policy"]["eef_pos"][env_ids]
         eef_quat = self.obs_buf["policy"]["eef_quat"][env_ids]
-        # Quaternion format is w,x,y,z
         return PoseUtils.make_pose(eef_pos, PoseUtils.matrix_from_quat(eef_quat))
 
     def get_object_poses(self, env_ids: Sequence[int] | None = None):
@@ -112,26 +110,20 @@ class DroidOvenIKRelMimicEnv(ManagerBasedRLMimicEnv):
         """
         eef_name = list(self.cfg.subtask_configs.keys())[0]
 
-        # target position and rotation
         (target_eef_pose,) = target_eef_pose_dict.values()
         target_pos, target_rot = PoseUtils.unmake_pose(target_eef_pose)
 
-        # current position and rotation
         curr_pose = self.get_robot_eef_pose(eef_name, env_ids=[env_id])[0]
         curr_pos, curr_rot = PoseUtils.unmake_pose(curr_pose)
 
-        # normalized delta position action
         delta_position = target_pos - curr_pos
 
-        # normalized delta rotation action
         delta_rot_mat = target_rot.matmul(curr_rot.transpose(-1, -2))
         delta_quat = PoseUtils.quat_from_matrix(delta_rot_mat)
         delta_rotation = PoseUtils.axis_angle_from_quat(delta_quat)
 
-        # get gripper action for single eef
         (gripper_action,) = gripper_action_dict.values()
 
-        # add noise to action
         pose_action = torch.cat([delta_position, delta_rotation], dim=0)
         if action_noise_dict is not None:
             noise = action_noise_dict[eef_name] * torch.randn_like(pose_action)
@@ -159,18 +151,14 @@ class DroidOvenIKRelMimicEnv(ManagerBasedRLMimicEnv):
         delta_position = action[:, :3]
         delta_rotation = action[:, 3:6]
 
-        # current position and rotation
         curr_pose = self.get_robot_eef_pose(eef_name, env_ids=None)
         curr_pos, curr_rot = PoseUtils.unmake_pose(curr_pose)
 
-        # get pose target
         target_pos = curr_pos + delta_position
 
-        # Convert delta_rotation to axis angle form
         delta_rotation_angle = torch.linalg.norm(delta_rotation, dim=-1, keepdim=True)
         delta_rotation_axis = delta_rotation / delta_rotation_angle
 
-        # Handle invalid division for the case when delta_rotation_angle is close to zero
         is_close_to_zero_angle = torch.isclose(
             delta_rotation_angle, torch.zeros_like(delta_rotation_angle)
         ).squeeze(1)
@@ -200,18 +188,13 @@ class DroidOvenIKRelMimicEnv(ManagerBasedRLMimicEnv):
         Returns:
             A dictionary of torch.Tensor gripper actions. Key to each dict is an eef_name.
         """
-        # last dimension is gripper action
         return {list(self.cfg.subtask_configs.keys())[0]: actions[:, -1:]}
 
     def get_subtask_term_signals(
         self, env_ids: Sequence[int] | None = None
     ) -> dict[str, torch.Tensor]:
         """
-        Gets a dictionary of termination signal flags for each subtask in a task. The flag is 1
-        when the subtask has been completed and 0 otherwise. The implementation of this method is
-        required if intending to enable automatic subtask term signal annotation when running the
-        dataset annotation tool. This method can be kept unimplemented if intending to use manual
-        subtask term signal annotation.
+        Gets a dictionary of termination signal flags for each subtask in a task.
 
         Args:
             env_ids: Environment indices to get the termination signals for. If None, all envs are considered.
@@ -222,33 +205,7 @@ class DroidOvenIKRelMimicEnv(ManagerBasedRLMimicEnv):
         if env_ids is None:
             env_ids = slice(None)
 
-        signals = dict()
+        signals = {}
         subtask_terms = self.obs_buf["subtask_terms"]
-        signals["oven_opened"] = subtask_terms["oven_opened"][env_ids]
-        signals["grasp_can"] = subtask_terms["grasp_can"][env_ids]
+        signals["plate_grasped"] = subtask_terms["plate_grasped"][env_ids]
         return signals
-
-    # def get_expected_attached_object(
-    #     self, eef_name: str, subtask_index: int, env_cfg
-    # ) -> str | None:
-    #     """
-    #     (SkillGen) Return the expected attached object for the given EEF/subtask.
-
-    #     Assumes 'stack' subtasks place the object grasped in the preceding 'grasp' subtask.
-    #     Returns None for 'grasp' (or others) at subtask start.
-    #     """
-    #     if eef_name not in env_cfg.subtask_configs:
-    #         return None
-
-    #     subtask_configs = env_cfg.subtask_configs[eef_name]
-    #     if not (0 <= subtask_index < len(subtask_configs)):
-    #         return None
-
-    #     current_cfg = subtask_configs[subtask_index]
-    #     # If stacking, expect we are holding the object grasped in the prior subtask
-    #     if "stack" in str(current_cfg.subtask_term_signal).lower():
-    #         if subtask_index > 0:
-    #             prev_cfg = subtask_configs[subtask_index - 1]
-    #             if "grasp" in str(prev_cfg.subtask_term_signal).lower():
-    #                 return prev_cfg.object_ref
-    #     return None

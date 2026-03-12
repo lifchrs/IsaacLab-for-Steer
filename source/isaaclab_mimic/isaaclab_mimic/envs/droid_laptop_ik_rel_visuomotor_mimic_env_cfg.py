@@ -38,7 +38,7 @@ class DroidLaptopIKRelVisuomotorMimicEnvCfg(
         # # should terminate (used for data generation)
         # self.should_terminate = dict[int, bool]()
 
-        ACTION_NOISE = 0.01
+        ACTION_NOISE = 0.02
 
         # The following are the subtask configurations for the laptop task.
         subtask_configs = []

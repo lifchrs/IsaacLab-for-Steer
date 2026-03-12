@@ -96,42 +96,42 @@ is_docker() {
     [[ "$(hostname)" == *"."* ]]
 }
 
-# # If a conda-provided libstdc++ is too old for Isaac Sim (missing GLIBCXX_3.4.30),
-# # preload the system libstdc++ to avoid bootstrap failures.
-# ensure_compatible_libstdcpp() {
-#     if [[ -z "${CONDA_PREFIX}" ]]; then
-#         return
-#     fi
+# If a conda-provided libstdc++ is too old for Isaac Sim (missing GLIBCXX_3.4.30),
+# preload the system libstdc++ to avoid bootstrap failures.
+ensure_compatible_libstdcpp() {
+    if [[ -z "${CONDA_PREFIX}" ]]; then
+        return
+    fi
 
-#     if [[ "$(uname -s)" != "Linux" ]]; then
-#         return
-#     fi
+    if [[ "$(uname -s)" != "Linux" ]]; then
+        return
+    fi
 
-#     local conda_libstdcpp="${CONDA_PREFIX}/lib/libstdc++.so.6"
-#     local system_libstdcpp="/usr/lib/x86_64-linux-gnu/libstdc++.so.6"
+    local conda_libstdcpp="${CONDA_PREFIX}/lib/libstdc++.so.6"
+    local system_libstdcpp="/usr/lib/x86_64-linux-gnu/libstdc++.so.6"
 
-#     if [[ ! -f "${conda_libstdcpp}" || ! -f "${system_libstdcpp}" ]]; then
-#         return
-#     fi
+    if [[ ! -f "${conda_libstdcpp}" || ! -f "${system_libstdcpp}" ]]; then
+        return
+    fi
 
-#     local conda_has_3430=0
-#     local system_has_3430=0
-#     if strings "${conda_libstdcpp}" 2>/dev/null | grep -q "GLIBCXX_3.4.30"; then
-#         conda_has_3430=1
-#     fi
-#     if strings "${system_libstdcpp}" 2>/dev/null | grep -q "GLIBCXX_3.4.30"; then
-#         system_has_3430=1
-#     fi
+    local conda_has_3430=0
+    local system_has_3430=0
+    if strings "${conda_libstdcpp}" 2>/dev/null | grep -q "GLIBCXX_3.4.30"; then
+        conda_has_3430=1
+    fi
+    if strings "${system_libstdcpp}" 2>/dev/null | grep -q "GLIBCXX_3.4.30"; then
+        system_has_3430=1
+    fi
 
-#     if [[ ${conda_has_3430} -eq 0 && ${system_has_3430} -eq 1 ]]; then
-#         if [[ -z "${LD_PRELOAD}" ]]; then
-#             export LD_PRELOAD="${system_libstdcpp}"
-#         elif [[ "${LD_PRELOAD}" != *"${system_libstdcpp}"* ]]; then
-#             export LD_PRELOAD="${system_libstdcpp} ${LD_PRELOAD}"
-#         fi
-#         echo "[INFO] Conda libstdc++ is missing GLIBCXX_3.4.30; preloading system libstdc++.so.6."
-#     fi
-# }
+    if [[ ${conda_has_3430} -eq 0 && ${system_has_3430} -eq 1 ]]; then
+        if [[ -z "${LD_PRELOAD}" ]]; then
+            export LD_PRELOAD="${system_libstdcpp}"
+        elif [[ "${LD_PRELOAD}" != *"${system_libstdcpp}"* ]]; then
+            export LD_PRELOAD="${system_libstdcpp} ${LD_PRELOAD}"
+        fi
+        echo "[INFO] Conda libstdc++ is missing GLIBCXX_3.4.30; preloading system libstdc++.so.6."
+    fi
+}
 
 ensure_cuda_torch() {
   local pip_command=$(extract_pip_command)
@@ -509,7 +509,7 @@ if [ -z "$*" ]; then
     exit 0
 fi
 
-# ensure_compatible_libstdcpp
+ensure_compatible_libstdcpp
 
 # pass the arguments
 while [[ $# -gt 0 ]]; do

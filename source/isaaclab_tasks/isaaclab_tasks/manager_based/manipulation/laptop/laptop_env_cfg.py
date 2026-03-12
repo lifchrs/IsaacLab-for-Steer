@@ -341,7 +341,7 @@ class LaptopEnvCfg(ManagerBasedRLEnvCfg):
 
     # Scene settings
     scene: LaptopSceneCfg = LaptopSceneCfg(
-        num_envs=4096, env_spacing=25, replicate_physics=False
+        num_envs=4096, env_spacing=20, replicate_physics=False
     )
     # Basic settings
     observations: ObservationsCfg = ObservationsCfg()
