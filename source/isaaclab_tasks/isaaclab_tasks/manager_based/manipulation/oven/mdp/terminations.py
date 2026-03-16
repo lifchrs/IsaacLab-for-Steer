@@ -84,7 +84,7 @@ def oven_opened(
     """Subtask 1: oven door has been opened."""
     oven: Articulation = env.scene[oven_cfg.name]
     door_joint_pos = _get_joint_position(oven, door_joint_name)
-    print(f"door_joint_pos: {door_joint_pos}")
+    # print(f"door_joint_pos: {door_joint_pos}")
     return door_joint_pos <= door_open_threshold
 
 
@@ -143,7 +143,7 @@ def oven_closed(
     """Subtask 3: oven door is closed."""
     oven: Articulation = env.scene[oven_cfg.name]
     door_joint_pos = _get_joint_position(oven, door_joint_name)
-    print(f"door_joint_pos: {door_joint_pos}")
+    # print(f"door_joint_pos: {door_joint_pos}")
     return door_joint_pos >= door_closed_threshold
 
 

@@ -34,9 +34,18 @@ class DroidPlateIKRelMimicEnv(ManagerBasedRLMimicEnv):
         if env_ids is None:
             env_ids = slice(None)
 
-        eef_pos = self.obs_buf["policy"]["eef_pos"][env_ids]
-        eef_quat = self.obs_buf["policy"]["eef_quat"][env_ids]
-        return PoseUtils.make_pose(eef_pos, PoseUtils.matrix_from_quat(eef_quat))
+        ee_frame = self.scene["ee_frame"]
+        robot = self.scene["robot"]
+
+        eef_pos_base, eef_quat_base = PoseUtils.subtract_frame_transforms(
+            robot.data.root_pos_w[env_ids],
+            robot.data.root_quat_w[env_ids],
+            ee_frame.data.target_pos_w[env_ids, 0, :],
+            ee_frame.data.target_quat_w[env_ids, 0, :],
+        )
+        return PoseUtils.make_pose(
+            eef_pos_base, PoseUtils.matrix_from_quat(eef_quat_base)
+        )
 
     def get_object_poses(self, env_ids: Sequence[int] | None = None):
         """

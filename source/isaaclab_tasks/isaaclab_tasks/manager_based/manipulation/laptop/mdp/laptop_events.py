@@ -31,11 +31,13 @@ def set_default_joint_pose(
     default_pose: torch.Tensor,
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ):
-    # Set the default pose for robots in all envs
     asset = env.scene[asset_cfg.name]
-    asset.data.default_joint_pos = torch.tensor(default_pose, device=env.device).repeat(
-        env.num_envs, 1
-    )
+    default_pose_tensor = torch.tensor(default_pose, device=env.device)
+
+    if asset_cfg.joint_ids == slice(None):
+        asset.data.default_joint_pos = default_pose_tensor.repeat(env.num_envs, 1)
+    else:
+        asset.data.default_joint_pos[:, asset_cfg.joint_ids] = default_pose_tensor
 
 
 def set_table_default_joint_pose(
@@ -130,18 +132,25 @@ def randomize_joint_by_gaussian_offset(
     # Add gaussian noise to joint states
     joint_pos = asset.data.default_joint_pos[env_ids].clone()
     joint_vel = asset.data.default_joint_vel[env_ids].clone()
-    joint_pos += math_utils.sample_gaussian(
-        mean, std, joint_pos.shape, joint_pos.device
-    )
-    # print(joint_pos)
+    joint_ids = asset_cfg.joint_ids
+    if joint_ids == slice(None):
+        joint_pos += math_utils.sample_gaussian(mean, std, joint_pos.shape, joint_pos.device)
 
-    # Clamp joint pos to limits
-    joint_pos_limits = asset.data.soft_joint_pos_limits[env_ids]
-    # print(joint_pos_limits)
-    joint_pos = joint_pos.clamp_(joint_pos_limits[..., 0], joint_pos_limits[..., 1])
+        # Clamp joint pos to limits
+        joint_pos_limits = asset.data.soft_joint_pos_limits[env_ids]
+        joint_pos = joint_pos.clamp_(joint_pos_limits[..., 0], joint_pos_limits[..., 1])
 
-    # Don't noise the gripper poses
-    joint_pos[:, -2:] = asset.data.default_joint_pos[env_ids, -2:]
+        # Don't noise the gripper poses for the single-arm laptop variants.
+        joint_pos[:, -2:] = asset.data.default_joint_pos[env_ids, -2:]
+    else:
+        joint_pos[:, joint_ids] += math_utils.sample_gaussian(
+            mean, std, joint_pos[:, joint_ids].shape, joint_pos.device
+        )
+
+        joint_pos_limits = asset.data.soft_joint_pos_limits[env_ids][:, joint_ids]
+        joint_pos[:, joint_ids] = joint_pos[:, joint_ids].clamp_(
+            joint_pos_limits[..., 0], joint_pos_limits[..., 1]
+        )
 
     # Set into the physics simulation
     asset.set_joint_position_target(joint_pos, env_ids=env_ids)

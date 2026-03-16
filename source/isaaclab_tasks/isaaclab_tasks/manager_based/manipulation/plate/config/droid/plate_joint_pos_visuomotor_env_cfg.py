@@ -340,10 +340,10 @@ class DroidPlateJointPosVisuomotorEnvCfg(PlateEnvCfg):
         self.sim.render.antialiasing_mode = "OFF"  # disable dlss
 
         # # change camera resolutions to save memory
-        # self.scene.table_cam.height = 720 / 4
-        # self.scene.table_cam.width = 1280 / 4
-        # self.scene.wrist_cam.height = 720 / 4
-        # self.scene.wrist_cam.width = 1280 / 4
+        self.scene.table_cam.height = 720 / 4
+        self.scene.table_cam.width = 1280 / 4
+        self.scene.wrist_cam.height = 720 / 4
+        self.scene.wrist_cam.width = 1280 / 4
 
         # List of image observations in policy observations
         self.image_obs_list = ["table_cam", "wrist_cam"]
