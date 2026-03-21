@@ -5,7 +5,9 @@
 import gymnasium as gym
 
 from . import (
+    laptop_joint_pos_pointcloud_env_cfg,
     laptop_joint_pos_visuomotor_env_cfg,
+    laptop_ik_rel_pointcloud_env_cfg,
     laptop_ik_rel_visuomotor_env_cfg,
 )
 
@@ -36,6 +38,26 @@ gym.register(
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     kwargs={
         "env_cfg_entry_point": laptop_ik_rel_visuomotor_env_cfg.DroidLaptopIkRelVisuomotorEnvCfg,
+    },
+    disable_env_checker=True,
+)
+
+
+gym.register(
+    id="Isaac-Laptop-Droid-PointCloud-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    kwargs={
+        "env_cfg_entry_point": laptop_joint_pos_pointcloud_env_cfg.DroidLaptopJointPosPointCloudEnvCfg,
+    },
+    disable_env_checker=True,
+)
+
+
+gym.register(
+    id="Isaac-Laptop-Droid-PointCloud-IK-Rel-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    kwargs={
+        "env_cfg_entry_point": laptop_ik_rel_pointcloud_env_cfg.DroidLaptopIkRelPointCloudEnvCfg,
     },
     disable_env_checker=True,
 )

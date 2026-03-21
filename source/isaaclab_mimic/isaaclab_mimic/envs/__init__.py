@@ -81,15 +81,24 @@ from .droid_cylinder_ik_rel_visuomotor_mimic_env_cfg import (
 )
 
 from .droid_laptop_ik_rel_mimic_env import DroidLaptopIKRelMimicEnv
+from .droid_laptop_ik_rel_pointcloud_mimic_env_cfg import (
+    DroidLaptopIKRelPointCloudMimicEnvCfg,
+)
 from .droid_laptop_ik_rel_visuomotor_mimic_env_cfg import (
     DroidLaptopIKRelVisuomotorMimicEnvCfg,
 )
 from .droid_oven_ik_rel_mimic_env import DroidOvenIKRelMimicEnv
+from .droid_oven_ik_rel_pointcloud_mimic_env_cfg import (
+    DroidOvenIKRelPointCloudMimicEnvCfg,
+)
 from .droid_oven_ik_rel_visuomotor_mimic_env_cfg import (
     DroidOvenIKRelVisuomotorMimicEnvCfg,
 )
 
 from .droid_plate_ik_rel_mimic_env import DroidPlateIKRelMimicEnv
+from .droid_plate_ik_rel_pointcloud_mimic_env_cfg import (
+    DroidPlateIKRelPointCloudMimicEnvCfg,
+)
 from .droid_plate_ik_rel_visuomotor_mimic_env_cfg import (
     DroidPlateIKRelVisuomotorMimicEnvCfg,
 )
@@ -419,6 +428,15 @@ gym.register(
     disable_env_checker=True,
 )
 
+gym.register(
+    id="Isaac-Laptop-Droid-IK-Rel-PointCloud-Mimic-v0",
+    entry_point="isaaclab_mimic.envs:DroidLaptopIKRelMimicEnv",
+    kwargs={
+        "env_cfg_entry_point": droid_laptop_ik_rel_pointcloud_mimic_env_cfg.DroidLaptopIKRelPointCloudMimicEnvCfg,
+    },
+    disable_env_checker=True,
+)
+
 ##
 # Droid Oven
 ##
@@ -428,6 +446,15 @@ gym.register(
     entry_point="isaaclab_mimic.envs:DroidOvenIKRelMimicEnv",
     kwargs={
         "env_cfg_entry_point": droid_oven_ik_rel_visuomotor_mimic_env_cfg.DroidOvenIKRelVisuomotorMimicEnvCfg,
+    },
+    disable_env_checker=True,
+)
+
+gym.register(
+    id="Isaac-Oven-Droid-IK-Rel-PointCloud-Mimic-v0",
+    entry_point="isaaclab_mimic.envs:DroidOvenIKRelMimicEnv",
+    kwargs={
+        "env_cfg_entry_point": droid_oven_ik_rel_pointcloud_mimic_env_cfg.DroidOvenIKRelPointCloudMimicEnvCfg,
     },
     disable_env_checker=True,
 )
@@ -442,6 +469,15 @@ gym.register(
     entry_point="isaaclab_mimic.envs:DroidPlateIKRelMimicEnv",
     kwargs={
         "env_cfg_entry_point": droid_plate_ik_rel_visuomotor_mimic_env_cfg.DroidPlateIKRelVisuomotorMimicEnvCfg,
+    },
+    disable_env_checker=True,
+)
+
+gym.register(
+    id="Isaac-Plate-Droid-IK-Rel-PointCloud-Mimic-v0",
+    entry_point="isaaclab_mimic.envs:DroidPlateIKRelMimicEnv",
+    kwargs={
+        "env_cfg_entry_point": droid_plate_ik_rel_pointcloud_mimic_env_cfg.DroidPlateIKRelPointCloudMimicEnvCfg,
     },
     disable_env_checker=True,
 )
