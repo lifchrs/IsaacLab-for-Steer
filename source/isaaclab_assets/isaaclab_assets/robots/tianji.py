@@ -3,7 +3,7 @@ from isaaclab.assets import ArticulationCfg
 from isaaclab.actuators import ImplicitActuatorCfg
 from pathlib import Path
 
-ASSET_PATH = Path(__file__).parent / "../../../../assets/tianji"
+ASSET_PATH = Path(__file__).parent / "../../../../assets/tianji" 
 
 # Resolved by Isaac Lab at load-time from duplicate gripper payload names.
 LEFT_GRIPPER_JOINT = "finger_joint"
