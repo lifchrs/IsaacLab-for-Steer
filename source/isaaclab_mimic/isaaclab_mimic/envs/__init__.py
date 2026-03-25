@@ -102,6 +102,10 @@ from .droid_plate_ik_rel_pointcloud_mimic_env_cfg import (
 from .droid_plate_ik_rel_visuomotor_mimic_env_cfg import (
     DroidPlateIKRelVisuomotorMimicEnvCfg,
 )
+from .droid_scissor_ik_rel_mimic_env import DroidScissorIKRelMimicEnv
+from .droid_scissor_ik_rel_visuomotor_mimic_env_cfg import (
+    DroidScissorIKRelVisuomotorMimicEnvCfg,
+)
 
 ##
 # Inverse Kinematics - Relative Pose Control
@@ -478,6 +482,15 @@ gym.register(
     entry_point="isaaclab_mimic.envs:DroidPlateIKRelMimicEnv",
     kwargs={
         "env_cfg_entry_point": droid_plate_ik_rel_pointcloud_mimic_env_cfg.DroidPlateIKRelPointCloudMimicEnvCfg,
+    },
+    disable_env_checker=True,
+)
+
+gym.register(
+    id="Isaac-Scissor-Droid-IK-Rel-Visuomotor-Mimic-v0",
+    entry_point="isaaclab_mimic.envs:DroidScissorIKRelMimicEnv",
+    kwargs={
+        "env_cfg_entry_point": droid_scissor_ik_rel_visuomotor_mimic_env_cfg.DroidScissorIKRelVisuomotorMimicEnvCfg,
     },
     disable_env_checker=True,
 )

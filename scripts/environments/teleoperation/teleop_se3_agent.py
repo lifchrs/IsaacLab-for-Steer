@@ -8,6 +8,7 @@
 """Launch Isaac Sim Simulator first."""
 
 import argparse
+import inspect
 from collections.abc import Callable
 
 from isaaclab.app import AppLauncher
@@ -23,7 +24,7 @@ parser.add_argument(
     "--teleop_device",
     type=str,
     default="keyboard",
-    help="Device for interacting with environment. Examples: keyboard, spacemouse, gamepad, handtracking, manusvive",
+    help="Device for interacting with environment. Examples: keyboard, spacemouse, gamepad, handtracking, manusvive, oculus",
 )
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument(
@@ -67,6 +68,8 @@ from isaaclab.devices import (
     Se3GamepadCfg,
     Se3Keyboard,
     Se3KeyboardCfg,
+    Se3Oculus,
+    Se3OculusCfg,
     Se3SpaceMouse,
     Se3SpaceMouseCfg,
 )
@@ -226,10 +229,12 @@ def main() -> None:
                         rot_sensitivity=0.1 * sensitivity,
                     )
                 )
+            elif args_cli.teleop_device.lower() == "oculus":
+                teleop_interface = Se3Oculus(Se3OculusCfg())
             else:
                 omni.log.error(f"Unsupported teleop device: {args_cli.teleop_device}")
                 omni.log.error(
-                    "Supported devices: keyboard, spacemouse, gamepad, handtracking"
+                    "Supported devices: keyboard, spacemouse, gamepad, handtracking, oculus"
                 )
                 env.close()
                 simulation_app.close()
@@ -254,6 +259,7 @@ def main() -> None:
         return
 
     print(f"Using teleop device: {teleop_interface}")
+    advance_accepts_env = len(inspect.signature(teleop_interface.advance).parameters) == 1
 
     # reset environment
     env.reset()
@@ -267,9 +273,9 @@ def main() -> None:
             # run everything in inference mode
             with torch.inference_mode():
                 # get device command
-                action = teleop_interface.advance()
-
-                # Only apply teleop commands when active
+                action = teleop_interface.advance(env) if advance_accepts_env else teleop_interface.advance()
+                # Only apply teleop commands when active. Devices with a clutch should
+                # return zero action while motion is disabled so the sim keeps advancing.
                 if teleoperation_active:
                     # process actions
                     actions = action.repeat(env.num_envs, 1)

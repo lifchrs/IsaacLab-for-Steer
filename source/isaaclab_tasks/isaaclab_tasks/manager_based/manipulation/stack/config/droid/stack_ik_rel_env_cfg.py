@@ -6,6 +6,7 @@
 from isaaclab.controllers.differential_ik_cfg import DifferentialIKControllerCfg
 from isaaclab.devices.device_base import DevicesCfg
 from isaaclab.devices.keyboard import Se3KeyboardCfg
+from isaaclab.devices.oculus import Se3OculusCfg
 from isaaclab.devices.openxr.openxr_device import OpenXRDevice, OpenXRDeviceCfg
 from isaaclab.devices.openxr.retargeters.manipulator.gripper_retargeter import (
     GripperRetargeterCfg,
@@ -76,5 +77,6 @@ class DroidCubeStackEnvCfg(stack_joint_pos_env_cfg.DroidCubeStackEnvCfg):
                     rot_sensitivity=0.05,
                     sim_device=self.sim.device,
                 ),
+                "oculus": Se3OculusCfg(sim_device=self.sim.device),
             }
         )

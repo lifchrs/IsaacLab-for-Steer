@@ -26,6 +26,7 @@ optional arguments:
 # Standard library imports
 import argparse
 import contextlib
+import inspect
 
 # Isaac Lab AppLauncher
 from isaaclab.app import AppLauncher
@@ -89,7 +90,14 @@ import torch
 import omni.log
 import omni.ui as ui
 
-from isaaclab.devices import Se3Keyboard, Se3KeyboardCfg, Se3SpaceMouse, Se3SpaceMouseCfg
+from isaaclab.devices import (
+    Se3Keyboard,
+    Se3KeyboardCfg,
+    Se3Oculus,
+    Se3OculusCfg,
+    Se3SpaceMouse,
+    Se3SpaceMouseCfg,
+)
 from isaaclab.devices.openxr import remove_camera_configs
 from isaaclab.devices.teleop_device_factory import create_teleop_device
 
@@ -272,9 +280,11 @@ def setup_teleop_device(callbacks: dict[str, Callable]) -> object:
                 teleop_interface = Se3Keyboard(Se3KeyboardCfg(pos_sensitivity=0.2, rot_sensitivity=0.5))
             elif args_cli.teleop_device.lower() == "spacemouse":
                 teleop_interface = Se3SpaceMouse(Se3SpaceMouseCfg(pos_sensitivity=0.2, rot_sensitivity=0.5))
+            elif args_cli.teleop_device.lower() == "oculus":
+                teleop_interface = Se3Oculus(Se3OculusCfg())
             else:
                 omni.log.error(f"Unsupported teleop device: {args_cli.teleop_device}")
-                omni.log.error("Supported devices: keyboard, spacemouse, handtracking")
+                omni.log.error("Supported devices: keyboard, spacemouse, handtracking, oculus")
                 exit(1)
 
             # Add callbacks to fallback device
@@ -428,6 +438,7 @@ def run_simulation_loop(
 
     teleop_interface = setup_teleop_device(teleoperation_callbacks)
     teleop_interface.add_callback("R", reset_recording_instance)
+    advance_accepts_env = len(inspect.signature(teleop_interface.advance).parameters) == 1
 
     # Reset before starting
     env.sim.reset()
@@ -442,7 +453,7 @@ def run_simulation_loop(
     with contextlib.suppress(KeyboardInterrupt) and torch.inference_mode():
         while simulation_app.is_running():
             # Get keyboard command
-            action = teleop_interface.advance()
+            action = teleop_interface.advance(env) if advance_accepts_env else teleop_interface.advance()
             # Expand to batch dimension
             actions = action.repeat(env.num_envs, 1)
 

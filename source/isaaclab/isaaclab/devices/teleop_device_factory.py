@@ -14,6 +14,7 @@ import omni.log
 from isaaclab.devices import DeviceBase, DeviceCfg
 from isaaclab.devices.gamepad import Se2Gamepad, Se2GamepadCfg, Se3Gamepad, Se3GamepadCfg
 from isaaclab.devices.keyboard import Se2Keyboard, Se2KeyboardCfg, Se3Keyboard, Se3KeyboardCfg
+from isaaclab.devices.oculus import Se3Oculus, Se3OculusCfg
 from isaaclab.devices.openxr.retargeters import (
     GR1T2Retargeter,
     GR1T2RetargeterCfg,
@@ -36,6 +37,7 @@ DEVICE_MAP: dict[type[DeviceCfg], type[DeviceBase]] = {
     Se3KeyboardCfg: Se3Keyboard,
     Se3SpaceMouseCfg: Se3SpaceMouse,
     Se3GamepadCfg: Se3Gamepad,
+    Se3OculusCfg: Se3Oculus,
     Se2KeyboardCfg: Se2Keyboard,
     Se2GamepadCfg: Se2Gamepad,
     Se2SpaceMouseCfg: Se2SpaceMouse,

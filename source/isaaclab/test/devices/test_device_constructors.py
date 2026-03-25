@@ -31,6 +31,8 @@ from isaaclab.devices import (
     Se3GamepadCfg,
     Se3Keyboard,
     Se3KeyboardCfg,
+    Se3Oculus,
+    Se3OculusCfg,
     Se3SpaceMouse,
     Se3SpaceMouseCfg,
 )
@@ -319,6 +321,41 @@ def test_openxr_constructors(mock_environment, mocker):
 
     # Test reset functionality
     device.reset()
+
+
+def test_se3oculus_constructors_and_advance(mocker):
+    """Test constructor and advance for Se3Oculus."""
+
+    class FakeReader:
+        def __init__(self, *args, **kwargs):
+            self.poses = {"r": torch.eye(4).cpu().numpy()}
+            self.buttons = {"RG": True, "RJ": False, "rightTrig": (0.8,)}
+
+        def get_transformations_and_buttons(self):
+            return self.poses, self.buttons
+
+        def stop(self):
+            pass
+
+    device_mod = importlib.import_module("isaaclab.devices.oculus.se3_oculus")
+    mocker.patch.object(device_mod.Se3Oculus, "_resolve_oculus_reader_class", return_value=FakeReader)
+
+    device = Se3Oculus(Se3OculusCfg(sim_device="cpu"))
+
+    arm_action = mocker.MagicMock()
+    arm_action._compute_frame_pose.return_value = (
+        torch.zeros((1, 3), dtype=torch.float32),
+        torch.tensor([[1.0, 0.0, 0.0, 0.0]], dtype=torch.float32),
+    )
+    env = mocker.MagicMock()
+    env.action_manager.get_term.return_value = arm_action
+
+    result = device.advance(env)
+
+    assert isinstance(result, torch.Tensor)
+    assert result.shape == (7,)
+    assert device.is_motion_enabled()
+    assert result[-1].item() == pytest.approx(-1.0)
 
 
 """
