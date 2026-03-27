@@ -46,8 +46,8 @@ SCISSORS010_INIT_ROT = (1.0, 0.0, 0.0, 0.0)
 
 PEN_GRASP_DIFF_THRESHOLD = 0.08
 PEN_HOLDER_XY_THRESHOLD = 0.05
-PEN_HOLDER_MIN_HEIGHT_OFFSET = 0.06
-PEN_HOLDER_MAX_HEIGHT_OFFSET = 0.24
+PEN_HOLDER_MIN_HEIGHT_OFFSET = 0.08
+PEN_HOLDER_MAX_HEIGHT_OFFSET = 0.15
 
 pen_mass_properties = MassPropertiesCfg(
     mass=0.01,  # Mass in kg
@@ -130,7 +130,7 @@ class PenSceneCfg(InteractiveSceneCfg):
             usd_path=os.path.abspath(
                 os.path.join(CUSTOM_ASSET_DIR, "pen", "model_pen_0.usd")
             ),
-            scale=(1.3, 2.0, 2.0),
+            scale=(1.3, 1.8, 1.8),
             rigid_props=rigid_body_properties,
             mass_props=pen_mass_properties,
             collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=True),
@@ -233,17 +233,17 @@ class ObservationsCfg:
             },
         )
 
-        pen_placed_in_holder = ObsTerm(
-            func=mdp.task_done_pen,
-            params={
-                "pen_cfg": SceneEntityCfg("pen"),
-                "holder_cfg": SceneEntityCfg("pen_holder001"),
-                "robot_cfg": SceneEntityCfg("robot"),
-                "xy_threshold": PEN_HOLDER_XY_THRESHOLD,
-                "min_height_offset": PEN_HOLDER_MIN_HEIGHT_OFFSET,
-                "max_height_offset": PEN_HOLDER_MAX_HEIGHT_OFFSET,
-            },
-        )
+        # pen_placed_in_holder = ObsTerm(
+        #     func=mdp.task_done_pen,
+        #     params={
+        #         "pen_cfg": SceneEntityCfg("pen"),
+        #         "holder_cfg": SceneEntityCfg("pen_holder001"),
+        #         "robot_cfg": SceneEntityCfg("robot"),
+        #         "xy_threshold": PEN_HOLDER_XY_THRESHOLD,
+        #         "min_height_offset": PEN_HOLDER_MIN_HEIGHT_OFFSET,
+        #         "max_height_offset": PEN_HOLDER_MAX_HEIGHT_OFFSET,
+        #     },
+        # )
 
         def __post_init__(self):
             self.enable_corruption = False
