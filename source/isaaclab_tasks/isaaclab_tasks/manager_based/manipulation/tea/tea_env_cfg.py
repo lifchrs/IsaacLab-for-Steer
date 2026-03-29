@@ -31,14 +31,26 @@ SCENE_ASSET_DIR = os.path.join(
 
 DININGROOM_INIT_POS = (0.0, 0.0, 0.0)
 DININGROOM_INIT_ROT = (1.0, 0.0, 0.0, 0.0)
+TEA_OBJECT_SCALE = (1.4, 1.4, 1.4)
 
 TEAPOT_GRASP_DIFF_THRESHOLD = 0.10
-TEAPOT_MOUTH_LOCAL_OFFSET = (0.0, 0.05847, -0.06146)
+TEAPOT_MOUTH_LOCAL_OFFSET_BASE = (0.0, 0.05, 0.062)
+TEAPOT_MOUTH_LOCAL_OFFSET = tuple(
+    base * scale for base, scale in zip(TEAPOT_MOUTH_LOCAL_OFFSET_BASE, TEA_OBJECT_SCALE, strict=True)
+)
 TEAPOT_MOUTH_TEACUP_XY_THRESHOLD = 0.10
 TEAPOT_ROLL_THRESHOLD_RAD = math.radians(30.0)
+TEAPOT_MAX_RELATIVE_ROLL_RAD = math.pi / 4.0
 
-TEAPOT_MASS_PROPERTIES = MassPropertiesCfg(mass=0.5)
+TEAPOT_MASS_PROPERTIES = MassPropertiesCfg(mass=0.001)
 TEACUP_MASS_PROPERTIES = MassPropertiesCfg(mass=0.12)
+TEAPOT_PHYSICS_MATERIAL = sim_utils.RigidBodyMaterialCfg(
+    static_friction=2.0,
+    dynamic_friction=2.0,
+    restitution=0.0,
+    friction_combine_mode="max",
+    restitution_combine_mode="min",
+)
 
 kinematic_body_properties = RigidBodyPropertiesCfg(
     kinematic_enabled=True,
@@ -75,6 +87,7 @@ class TeaSceneCfg(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/interactive_diningroom/model_TeaTable/E_teapot_5",
         spawn=UsdFileCfg(
             usd_path="",
+            scale=TEA_OBJECT_SCALE,
             rigid_props=rigid_body_properties,
             mass_props=TEAPOT_MASS_PROPERTIES,
             collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=True),
@@ -85,6 +98,7 @@ class TeaSceneCfg(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/interactive_diningroom/model_TeaTable/E_teacup005_20",
         spawn=UsdFileCfg(
             usd_path="",
+            scale=TEA_OBJECT_SCALE,
             rigid_props=rigid_body_properties,
             mass_props=TEACUP_MASS_PROPERTIES,
             collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=True),
@@ -103,6 +117,28 @@ class ActionsCfg:
 @configclass
 class EventCfg:
     """Configuration for startup events."""
+
+    scale_teapot = EventTerm(
+        func=tea_events.apply_scale_from_spawn_cfg,
+        mode="prestartup",
+        params={"asset_cfg": SceneEntityCfg("teapot")},
+    )
+
+    scale_teacup = EventTerm(
+        func=tea_events.apply_scale_from_spawn_cfg,
+        mode="prestartup",
+        params={"asset_cfg": SceneEntityCfg("teacup")},
+    )
+
+    teapot_physics_material = EventTerm(
+        func=tea_events.bind_rigid_body_material,
+        mode="prestartup",
+        params={
+            "asset_cfg": SceneEntityCfg("teapot"),
+            "material_cfg": TEAPOT_PHYSICS_MATERIAL,
+            "material_name": "teaPotPhysicsMaterial",
+        },
+    )
 
     deactivate_other_teacups = EventTerm(
         func=tea_events.deactivate_prim,
@@ -178,13 +214,13 @@ class ObservationsCfg:
             },
         )
 
-        teapot_rolled = ObsTerm(
-            func=mdp.teapot_rolled,
-            params={
-                "teapot_cfg": SceneEntityCfg("teapot"),
-                "min_roll_rad": TEAPOT_ROLL_THRESHOLD_RAD,
-            },
-        )
+        # teapot_rolled = ObsTerm(
+        #     func=mdp.teapot_rolled,
+        #     params={
+        #         "teapot_cfg": SceneEntityCfg("teapot"),
+        #         "min_roll_rad": TEAPOT_ROLL_THRESHOLD_RAD,
+        #     },
+        # )
 
         def __post_init__(self):
             self.enable_corruption = False
@@ -212,6 +248,14 @@ class TerminationsCfg:
         params={
             "minimum_height": 0.5,
             "asset_cfg": SceneEntityCfg("teacup"),
+        },
+    )
+
+    teapot_over_rolled = DoneTerm(
+        func=mdp.teapot_relative_roll_exceeds_max,
+        params={
+            "teapot_cfg": SceneEntityCfg("teapot"),
+            "max_relative_roll_rad": TEAPOT_MAX_RELATIVE_ROLL_RAD,
         },
     )
 

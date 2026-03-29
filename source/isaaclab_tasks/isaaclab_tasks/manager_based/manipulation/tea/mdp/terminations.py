@@ -86,6 +86,16 @@ def _teapot_mouth_position_w(
     return teapot_pos_w + math_utils.quat_apply(teapot_quat_w, mouth_offset_t)
 
 
+def _teapot_relative_roll(
+    env: ManagerBasedRLEnv,
+    teapot_cfg: SceneEntityCfg = SceneEntityCfg("teapot"),
+) -> torch.Tensor:
+    """Return the teapot roll relative to pi/2 in radians."""
+    teapot_quat_w = _asset_root_quat_w(env, teapot_cfg)
+    roll, _, _ = math_utils.euler_xyz_from_quat(teapot_quat_w)
+    return roll - torch.pi / 2.0
+
+
 def teapot_mouth_near_teacup_xy(
     env: ManagerBasedRLEnv,
     teapot_cfg: SceneEntityCfg = SceneEntityCfg("teapot"),
@@ -101,8 +111,8 @@ def teapot_mouth_near_teacup_xy(
     )
     teacup_pos_w = _asset_root_position_w(env, teacup_cfg)
     pos_diff = teacup_pos_w - teapot_pos_w
-
     xy_dist = torch.linalg.vector_norm(pos_diff[:, :2], dim=1)
+    print(f"xy_dist: {xy_dist}")
     return xy_dist <= xy_threshold
 
 
@@ -112,9 +122,19 @@ def teapot_rolled(
     min_roll_rad: float = math.pi / 6.0,
 ) -> torch.Tensor:
     """Check if the teapot roll magnitude exceeds the threshold."""
-    teapot_quat_w = _asset_root_quat_w(env, teapot_cfg)
-    roll, _, _ = math_utils.euler_xyz_from_quat(teapot_quat_w)
-    return torch.abs(roll) >= min_roll_rad
+    relative_roll = _teapot_relative_roll(env, teapot_cfg=teapot_cfg)
+    print(f"relative_roll: {relative_roll}")
+    return relative_roll >= min_roll_rad
+
+
+def teapot_relative_roll_exceeds_max(
+    env: ManagerBasedRLEnv,
+    teapot_cfg: SceneEntityCfg = SceneEntityCfg("teapot"),
+    max_relative_roll_rad: float = math.pi / 4.0,
+) -> torch.Tensor:
+    """Check if the teapot roll relative to pi/2 exceeds the allowed maximum."""
+    relative_roll = _teapot_relative_roll(env, teapot_cfg=teapot_cfg)
+    return relative_roll > max_relative_roll_rad
 
 
 def task_done_tea(

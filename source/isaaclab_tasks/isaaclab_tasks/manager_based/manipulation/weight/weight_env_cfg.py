@@ -122,7 +122,7 @@ class WeightSceneCfg(InteractiveSceneCfg):
             usd_path=os.path.abspath(
                 os.path.join(CUSTOM_ASSET_DIR, "electronic scales", "model_electronicscales.usd")
             ),
-            scale=(1.5, 1.5, 1.5),
+            scale=(1.8, 1.8, 1.8),
         ),
     )
 
@@ -338,6 +338,7 @@ class ObservationsCfg:
             params={
                 "apple_cfg": SceneEntityCfg("apple"),
                 "scale_cfg": SceneEntityCfg("scale"),
+                "y_offset": -0.05,
                 "xy_threshold": SCALE_XY_THRESHOLD,
             },
         )
@@ -383,6 +384,7 @@ class TerminationsCfg:
             "scale_cfg": SceneEntityCfg("scale"),
             "robot_cfg": SceneEntityCfg("robot"),
             "xy_threshold": SCALE_XY_THRESHOLD,
+            "y_offset": -0.05,
         },
     )
 

@@ -67,11 +67,16 @@ def _object_close_to_scale_xy(
     object_cfg: SceneEntityCfg,
     scale_cfg: SceneEntityCfg,
     xy_threshold: float,
+    y_offset: float = 0.0,
 ) -> torch.Tensor:
     """Check if an object root is close enough to the scale in XY."""
     object_pos_w = _asset_root_position_w(env, object_cfg)
+    # print(f"object_pos_w: {object_pos_w}")
     scale_pos_w = _asset_root_position_w(env, scale_cfg)
-    xy_dist = torch.linalg.vector_norm(object_pos_w[:, :2] - scale_pos_w[:, :2], dim=1)
+    # print(f"scale_pos_w: {scale_pos_w}")
+    xy_dist = torch.linalg.vector_norm(object_pos_w[:, :2] - (scale_pos_w[:, :2] + torch.tensor([0.0, y_offset], device=env.device, dtype=torch.float32)), dim=1)
+    # print(f"xy_dist: {xy_dist}")
+    # print(f"xy_threshold: {xy_threshold}")
     return xy_dist <= xy_threshold
 
 
@@ -79,6 +84,7 @@ def apple_on_scale(
     env: ManagerBasedRLEnv,
     apple_cfg: SceneEntityCfg = SceneEntityCfg("apple"),
     scale_cfg: SceneEntityCfg = SceneEntityCfg("scale"),
+    y_offset: float = 0.0,
     xy_threshold: float = 0.12,
 ) -> torch.Tensor:
     """Check if the apple is close enough to the scale in XY."""
@@ -86,6 +92,7 @@ def apple_on_scale(
         env,
         object_cfg=apple_cfg,
         scale_cfg=scale_cfg,
+        y_offset=y_offset,
         xy_threshold=xy_threshold,
     )
 
@@ -94,6 +101,7 @@ def pear_on_scale(
     env: ManagerBasedRLEnv,
     pear_cfg: SceneEntityCfg = SceneEntityCfg("pear"),
     scale_cfg: SceneEntityCfg = SceneEntityCfg("scale"),
+    y_offset: float = 0.0,
     xy_threshold: float = 0.12,
 ) -> torch.Tensor:
     """Check if the pear is close enough to the scale in XY."""
@@ -101,6 +109,7 @@ def pear_on_scale(
         env,
         object_cfg=pear_cfg,
         scale_cfg=scale_cfg,
+        y_offset=y_offset,
         xy_threshold=xy_threshold,
     )
 
@@ -112,6 +121,7 @@ def task_done_weight(
     scale_cfg: SceneEntityCfg = SceneEntityCfg("scale"),
     robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
     xy_threshold: float = 0.12,
+    y_offset: float = 0.0,
     atol: float = 0.01,
     rtol: float = 0.01,
 ) -> torch.Tensor:
@@ -121,12 +131,14 @@ def task_done_weight(
         apple_cfg=apple_cfg,
         scale_cfg=scale_cfg,
         xy_threshold=xy_threshold,
+        y_offset=y_offset,
     )
     pear_placed = pear_on_scale(
         env,
         pear_cfg=pear_cfg,
         scale_cfg=scale_cfg,
         xy_threshold=xy_threshold,
+        y_offset=y_offset,
     )
     robot: Articulation = env.scene[robot_cfg.name]
     gripper_open = _gripper_is_open(env, robot, atol=atol, rtol=rtol)

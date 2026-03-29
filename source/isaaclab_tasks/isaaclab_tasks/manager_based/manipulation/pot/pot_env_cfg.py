@@ -39,7 +39,7 @@ ROOM_INIT_ROT = (1.0, 0.0, 0.0, 0.0)
 
 POT_INIT_POS = PEN_TASK_TARGET_POT_POS
 POT_INIT_ROT = (1.0, 0.0, 0.0, 0.0)
-EGG_INIT_POS = (POT_INIT_POS[0] + 0.85, POT_INIT_POS[1] - 0.02, POT_INIT_POS[2])
+EGG_INIT_POS = (POT_INIT_POS[0] + 0.85, POT_INIT_POS[1] - 0.05, POT_INIT_POS[2] - 0.05)
 EGG_INIT_ROT = (1.0, 0.0, 0.0, 0.0)
 
 POT_GRASP_DIFF_THRESHOLD = 0.10
@@ -47,8 +47,8 @@ COVER_GRASP_DIFF_THRESHOLD = 0.08
 EGG_GRASP_DIFF_THRESHOLD = 0.08
 POT_COVER_REMOVE_XY_THRESHOLD = 0.08
 POT_COVER_REMOVE_HEIGHT_THRESHOLD = 0.06
-EGG_POT_XY_THRESHOLD = 0.10
-EGG_POT_Z_THRESHOLD = 0.10
+EGG_POT_XY_THRESHOLD = 0.12
+EGG_POT_Z_THRESHOLD = 0.05
 
 pot_mass_properties = MassPropertiesCfg(mass=0.6)
 cover_mass_properties = MassPropertiesCfg(mass=0.15)
@@ -207,15 +207,15 @@ class ObservationsCfg:
             },
         )
 
-        egg_in_pot = ObsTerm(
-            func=mdp.egg_in_pot,
-            params={
-                "pot_cfg": SceneEntityCfg("pot"),
-                "egg_cfg": SceneEntityCfg("egg"),
-                "xy_threshold": EGG_POT_XY_THRESHOLD,
-                "z_threshold": EGG_POT_Z_THRESHOLD,
-            },
-        )
+        # egg_in_pot = ObsTerm(
+        #     func=mdp.egg_in_pot,
+        #     params={
+        #         "pot_cfg": SceneEntityCfg("pot"),
+        #         "egg_cfg": SceneEntityCfg("egg"),
+        #         "xy_threshold": EGG_POT_XY_THRESHOLD,
+        #         "z_threshold": EGG_POT_Z_THRESHOLD,
+        #     },
+        # )
 
         def __post_init__(self):
             self.enable_corruption = False

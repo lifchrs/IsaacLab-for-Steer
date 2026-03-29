@@ -33,7 +33,7 @@ CUSTOM_ASSET_DIR = os.path.join(
 BIG_TABLE_CENTER_POS = (3.6874645197200904, 3.846993282921349, 0.5005000531284776)
 DRINK_SET_INIT_POS = (BIG_TABLE_CENTER_POS[0] - 0.10, BIG_TABLE_CENTER_POS[1], BIG_TABLE_CENTER_POS[2])
 DRINK_INIT_ROT = (1.0, 0.0, 0.0, 0.0)
-DRINK_BODY_TOP_Z_OFFSET = 0.24250000715255737 * 0.9
+DRINK_BODY_TOP_Z_OFFSET = 0.24250000715255737 * 0.82
 DRINK_LID_INIT_POS = (
     DRINK_SET_INIT_POS[0],
     DRINK_SET_INIT_POS[1],
@@ -50,6 +50,7 @@ DRINK_LID_REMOVE_HEIGHT_MARGIN = 0.04
 DRINK_POUR_XY_THRESHOLD = 0.15
 DRINK_POUR_HEIGHT_THRESHOLD = 0.05
 DRINK_POUR_TILT_THRESHOLD = 0.7853981633974483
+ROTATION_FROM_Z_AXIS_THRESHOLD = 1.0471975511965976
 
 kinematic_body_properties = RigidBodyPropertiesCfg(
     kinematic_enabled=True,
@@ -268,6 +269,22 @@ class TerminationsCfg:
         params={
             "minimum_height": 0.2,
             "asset_cfg": SceneEntityCfg("cup"),
+        },
+    )
+
+    drink_rotated_from_z_axis = DoneTerm(
+        func=mdp.asset_rotated_from_z_axis,
+        params={
+            "asset_cfg": SceneEntityCfg("drink"),
+            "threshold_rad": ROTATION_FROM_Z_AXIS_THRESHOLD,
+        },
+    )
+
+    cup_rotated_from_z_axis = DoneTerm(
+        func=mdp.asset_rotated_from_z_axis,
+        params={
+            "asset_cfg": SceneEntityCfg("cup"),
+            "threshold_rad": ROTATION_FROM_Z_AXIS_THRESHOLD,
         },
     )
 
