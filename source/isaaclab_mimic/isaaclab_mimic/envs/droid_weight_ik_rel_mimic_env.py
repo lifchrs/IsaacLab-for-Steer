@@ -153,7 +153,7 @@ class DroidWeightIKRelMimicEnv(ManagerBasedRLMimicEnv):
 
         subtask_terms = self.obs_buf["subtask_terms"]
         return {
-            "grasp_apple": subtask_terms["grasp_apple"][env_ids],
-            "apple_on_scale": subtask_terms["apple_on_scale"][env_ids],
             "grasp_pear": subtask_terms["grasp_pear"][env_ids],
+            "pear_on_scale": subtask_terms["pear_on_scale"][env_ids],
+            "grasp_apple": subtask_terms["grasp_apple"][env_ids],
         }

@@ -238,17 +238,22 @@ def object_grasped(
     ee_frame_cfg: SceneEntityCfg,
     object_cfg: SceneEntityCfg,
     diff_threshold: float = 0.06,
+    diff_z: float = 0.0,
 ) -> torch.Tensor:
-    """Check if an object is grasped by the specified robot."""
+    """Check if an object is grasped by the specified robot.
+
+    The optional ``diff_z`` is interpreted in the object's local frame, so the grasp point follows object rotation.
+    """
 
     robot: Articulation = env.scene[robot_cfg.name]
     ee_frame: FrameTransformer = env.scene[ee_frame_cfg.name]
     object: RigidObject = env.scene[object_cfg.name]
 
-    object_pos = object.data.root_pos_w
+    local_grasp_offset = torch.tensor((0.0, 0.0, diff_z), dtype=object.data.root_pos_w.dtype, device=env.device)
+    local_grasp_offset = local_grasp_offset.unsqueeze(0).repeat(object.data.root_pos_w.shape[0], 1)
+    object_pos = object.data.root_pos_w + math_utils.quat_apply(object.data.root_quat_w, local_grasp_offset)
     end_effector_pos = ee_frame.data.target_pos_w[:, 0, :]
     pose_diff = torch.linalg.vector_norm(object_pos - end_effector_pos, dim=1)
-    # print(f"pose_diff: {pose_diff}")
 
     if hasattr(env.scene, "surface_grippers") and len(env.scene.surface_grippers) > 0:
         surface_gripper = env.scene.surface_grippers["surface_gripper"]

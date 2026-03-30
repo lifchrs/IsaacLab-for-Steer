@@ -322,6 +322,25 @@ class ObservationsCfg:
     @configclass
     class SubtaskCfg(ObsGroup):
         """Subtask terms for the weight task."""
+        grasp_pear = ObsTerm(
+            func=mdp.object_grasped,
+            params={
+                "robot_cfg": SceneEntityCfg("robot"),
+                "ee_frame_cfg": SceneEntityCfg("ee_frame"),
+                "object_cfg": SceneEntityCfg("pear"),
+                "diff_threshold": PEAR_GRASP_DIFF_THRESHOLD,
+            },
+        )
+
+        pear_on_scale = ObsTerm(
+            func=mdp.pear_on_scale,
+            params={
+                "pear_cfg": SceneEntityCfg("pear"),
+                "scale_cfg": SceneEntityCfg("scale"),
+                "y_offset": -0.05,
+                "xy_threshold": SCALE_XY_THRESHOLD,
+            },
+        )
 
         grasp_apple = ObsTerm(
             func=mdp.object_grasped,
@@ -330,26 +349,6 @@ class ObservationsCfg:
                 "ee_frame_cfg": SceneEntityCfg("ee_frame"),
                 "object_cfg": SceneEntityCfg("apple"),
                 "diff_threshold": APPLE_GRASP_DIFF_THRESHOLD,
-            },
-        )
-
-        apple_on_scale = ObsTerm(
-            func=mdp.apple_on_scale,
-            params={
-                "apple_cfg": SceneEntityCfg("apple"),
-                "scale_cfg": SceneEntityCfg("scale"),
-                "y_offset": -0.05,
-                "xy_threshold": SCALE_XY_THRESHOLD,
-            },
-        )
-
-        grasp_pear = ObsTerm(
-            func=mdp.object_grasped,
-            params={
-                "robot_cfg": SceneEntityCfg("robot"),
-                "ee_frame_cfg": SceneEntityCfg("ee_frame"),
-                "object_cfg": SceneEntityCfg("pear"),
-                "diff_threshold": PEAR_GRASP_DIFF_THRESHOLD,
             },
         )
 

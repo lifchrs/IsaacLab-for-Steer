@@ -199,6 +199,18 @@ class DataGenerator:
         )
         return msg
 
+    @staticmethod
+    def _update_rollout_status(
+        generated_success: bool, exec_results: dict[str, Any]
+    ) -> tuple[bool, bool]:
+        """Return the updated rollout success flag and whether generation should stop after this step."""
+        step_success = bool(exec_results["success"])
+        step_terminated = bool(exec_results.get("terminated", False))
+        updated_success = generated_success or step_success
+        if step_terminated:
+            return False, True
+        return updated_success, False
+
     def randomize_subtask_boundaries(self) -> dict[str, np.ndarray]:
         """
         Apply random offsets to sample subtask boundaries according to the task spec.
@@ -1054,7 +1066,11 @@ class DataGenerator:
                 generated_states.extend(exec_results["states"])
                 generated_obs.extend(exec_results["observations"])
                 generated_actions.extend(exec_results["actions"])
-                generated_success = generated_success or exec_results["success"]
+                generated_success, should_stop = self._update_rollout_status(
+                    generated_success, exec_results
+                )
+                if should_stop:
+                    break
 
             for eef_name in self.env_cfg.subtask_configs.keys():
                 current_eef_subtask_step_indices[eef_name] += 1

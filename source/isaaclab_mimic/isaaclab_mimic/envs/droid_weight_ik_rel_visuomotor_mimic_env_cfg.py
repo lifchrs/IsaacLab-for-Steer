@@ -38,8 +38,8 @@ class DroidWeightIKRelVisuomotorMimicEnvCfg(
         subtask_configs = []
         subtask_configs.append(
             SubTaskConfig(
-                object_ref="apple",
-                subtask_term_signal="grasp_apple",
+                object_ref="pear",
+                subtask_term_signal="grasp_pear",
                 subtask_term_offset_range=(10, 20),
                 selection_strategy="nearest_neighbor_object",
                 selection_strategy_kwargs={"nn_k": 3},
@@ -52,7 +52,7 @@ class DroidWeightIKRelVisuomotorMimicEnvCfg(
         subtask_configs.append(
             SubTaskConfig(
                 object_ref="scale",
-                subtask_term_signal="apple_on_scale",
+                subtask_term_signal="pear_on_scale",
                 subtask_term_offset_range=(0, 0),
                 selection_strategy="nearest_neighbor_object",
                 selection_strategy_kwargs={"nn_k": 3},
@@ -64,8 +64,8 @@ class DroidWeightIKRelVisuomotorMimicEnvCfg(
         )
         subtask_configs.append(
             SubTaskConfig(
-                object_ref="pear",
-                subtask_term_signal="grasp_pear",
+                object_ref="apple",
+                subtask_term_signal="grasp_apple",
                 subtask_term_offset_range=(0, 0),
                 selection_strategy="nearest_neighbor_object",
                 selection_strategy_kwargs={"nn_k": 3},

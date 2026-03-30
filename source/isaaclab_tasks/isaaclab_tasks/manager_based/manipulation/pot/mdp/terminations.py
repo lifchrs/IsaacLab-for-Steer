@@ -66,8 +66,11 @@ def lid_removed_from_pot(
     env: ManagerBasedRLEnv,
     pot_cfg: SceneEntityCfg = SceneEntityCfg("pot"),
     cover_cfg: SceneEntityCfg = SceneEntityCfg("cover"),
-    xy_threshold: float = 0.08,
+    robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    xy_threshold: float = 0.05,
     height_threshold: float = 0.06,
+    atol: float = 0.01,
+    rtol: float = 0.01,
 ) -> torch.Tensor:
     """Check if the pot lid has been moved away from the pot."""
     pot_pos_w = _asset_root_position_w(env, pot_cfg)
@@ -75,8 +78,13 @@ def lid_removed_from_pot(
     pos_diff = cover_pos_w - pot_pos_w
 
     xy_dist = torch.linalg.vector_norm(pos_diff[:, :2], dim=1)
-    height_offset = pos_diff[:, 2]
-    return torch.logical_or(xy_dist >= xy_threshold, height_offset >= height_threshold)
+    # print(f"xy_dist: {xy_dist}")
+    placed = xy_dist >= xy_threshold
+
+    robot: Articulation = env.scene[robot_cfg.name]
+    placed = torch.logical_and(placed, _gripper_is_open(env, robot, atol=atol, rtol=rtol))
+    # height_offset = pos_diff[:, 2]
+    return placed
 
 
 def egg_in_pot(
@@ -84,7 +92,8 @@ def egg_in_pot(
     pot_cfg: SceneEntityCfg = SceneEntityCfg("pot"),
     egg_cfg: SceneEntityCfg = SceneEntityCfg("egg"),
     xy_threshold: float = 0.10,
-    z_threshold: float = 0.10,
+    z_min_threshold: float = 0.00,
+    z_max_threshold: float = 0.04,
     robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
     require_gripper_open: bool = False,
     atol: float = 0.01,
@@ -97,7 +106,9 @@ def egg_in_pot(
 
     xy_dist = torch.linalg.vector_norm(pos_diff[:, :2], dim=1)
     z_dist = torch.abs(pos_diff[:, 2])
-    placed = torch.logical_and(xy_dist <= xy_threshold, z_dist <= z_threshold)
+    # print(f"xy_dist: {xy_dist}, z_dist: {z_dist}")
+    placed = torch.logical_and(xy_dist <= xy_threshold, z_dist >= z_min_threshold)
+    placed = torch.logical_and(placed, z_dist <= z_max_threshold)
 
     if require_gripper_open:
         robot: Articulation = env.scene[robot_cfg.name]
@@ -115,7 +126,8 @@ def task_done_pot(
     lid_xy_threshold: float = 0.08,
     lid_height_threshold: float = 0.06,
     egg_xy_threshold: float = 0.10,
-    egg_z_threshold: float = 0.10,
+    egg_z_min_threshold: float = 0.00,
+    egg_z_max_threshold: float = 0.05,
     atol: float = 0.01,
     rtol: float = 0.01,
 ) -> torch.Tensor:
@@ -132,7 +144,8 @@ def task_done_pot(
         pot_cfg=pot_cfg,
         egg_cfg=egg_cfg,
         xy_threshold=egg_xy_threshold,
-        z_threshold=egg_z_threshold,
+        z_min_threshold=egg_z_min_threshold,
+        z_max_threshold=egg_z_max_threshold,
         robot_cfg=robot_cfg,
         require_gripper_open=True,
         atol=atol,

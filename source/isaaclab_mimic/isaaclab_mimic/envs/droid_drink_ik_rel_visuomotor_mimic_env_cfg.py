@@ -33,14 +33,16 @@ class DroidDrinkIKRelVisuomotorMimicEnvCfg(
         self.datagen_config.max_num_failures = 25
         self.datagen_config.seed = 1
 
-        action_noise = 0.02
+        action_noise = 0.015
 
         subtask_configs = []
         subtask_configs.append(
             SubTaskConfig(
                 object_ref="drink_lid",
                 subtask_term_signal="grasp_drink_lid",
-                subtask_term_offset_range=(10, 20),
+                # The annotated drink demos transition to lid removal within 10-14 steps,
+                # so this offset range must stay below that gap to keep subtasks separable.
+                subtask_term_offset_range=(0, 9),
                 selection_strategy="nearest_neighbor_object",
                 selection_strategy_kwargs={"nn_k": 3},
                 action_noise=action_noise,
@@ -78,7 +80,7 @@ class DroidDrinkIKRelVisuomotorMimicEnvCfg(
         subtask_configs.append(
             SubTaskConfig(
                 object_ref="cup",
-                subtask_term_signal="drink_poured_into_cup",
+                subtask_term_signal=None,
                 subtask_term_offset_range=(0, 0),
                 selection_strategy="nearest_neighbor_object",
                 selection_strategy_kwargs={"nn_k": 3},

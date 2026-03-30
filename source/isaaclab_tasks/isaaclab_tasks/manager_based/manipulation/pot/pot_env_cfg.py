@@ -10,6 +10,7 @@ import isaaclab.sim as sim_utils
 from isaaclab.assets import AssetBaseCfg, RigidObjectCfg
 from isaaclab.devices.openxr import XrCfg
 from isaaclab.envs import ManagerBasedRLEnvCfg
+from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.managers import SceneEntityCfg
@@ -20,6 +21,7 @@ from isaaclab.sim.spawners.from_files.from_files_cfg import UsdFileCfg
 from isaaclab.utils import configclass
 
 from . import mdp
+from .mdp import pot_events
 
 SCENE_ASSET_DIR = os.path.join(
     os.path.dirname(__file__),
@@ -39,19 +41,21 @@ ROOM_INIT_ROT = (1.0, 0.0, 0.0, 0.0)
 
 POT_INIT_POS = PEN_TASK_TARGET_POT_POS
 POT_INIT_ROT = (1.0, 0.0, 0.0, 0.0)
-EGG_INIT_POS = (POT_INIT_POS[0] + 0.85, POT_INIT_POS[1] - 0.05, POT_INIT_POS[2] - 0.05)
+EGG_INIT_POS = (POT_INIT_POS[0] + 0.85, POT_INIT_POS[1] - 0.05, POT_INIT_POS[2] - 0.03)
 EGG_INIT_ROT = (1.0, 0.0, 0.0, 0.0)
 
 POT_GRASP_DIFF_THRESHOLD = 0.10
-COVER_GRASP_DIFF_THRESHOLD = 0.08
+COVER_GRASP_DIFF_THRESHOLD = 0.25
 EGG_GRASP_DIFF_THRESHOLD = 0.08
 POT_COVER_REMOVE_XY_THRESHOLD = 0.08
 POT_COVER_REMOVE_HEIGHT_THRESHOLD = 0.06
 EGG_POT_XY_THRESHOLD = 0.12
-EGG_POT_Z_THRESHOLD = 0.05
+EGG_POT_Z_MIN_THRESHOLD = 0.00
+EGG_POT_Z_MAX_THRESHOLD = 0.05
+COVER_SCALE = (1.05, 1.05, 1.4)
 
 pot_mass_properties = MassPropertiesCfg(mass=0.6)
-cover_mass_properties = MassPropertiesCfg(mass=0.15)
+cover_mass_properties = MassPropertiesCfg(mass=0.01)
 egg_mass_properties = MassPropertiesCfg(mass=0.05)
 
 kinematic_body_properties = RigidBodyPropertiesCfg(
@@ -63,6 +67,14 @@ rigid_body_properties = RigidBodyPropertiesCfg(
     kinematic_enabled=False,
     disable_gravity=False,
     max_depenetration_velocity=0.5,
+)
+
+egg_rigid_body_properties = RigidBodyPropertiesCfg(
+    kinematic_enabled=False,
+    disable_gravity=False,
+    max_depenetration_velocity=10.0,
+    solver_position_iteration_count=16,
+    solver_velocity_iteration_count=4,
 )
 
 kinematic_rigid_body_properties = RigidBodyPropertiesCfg(
@@ -108,6 +120,7 @@ class PotSceneCfg(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/interactive_kitchen_with_parlor/model_kitchenware006/E_cover_2",
         spawn=UsdFileCfg(
             usd_path="",
+            scale=COVER_SCALE,
             rigid_props=rigid_body_properties,
             mass_props=cover_mass_properties,
             articulation_props=sim_utils.ArticulationRootPropertiesCfg(
@@ -123,9 +136,13 @@ class PotSceneCfg(InteractiveSceneCfg):
             usd_path=os.path.abspath(
                 os.path.join(CUSTOM_ASSET_DIR, "egg", "model_egg.usd")
             ),
-            rigid_props=rigid_body_properties,
+            rigid_props=egg_rigid_body_properties,
             mass_props=egg_mass_properties,
-            collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=True),
+            collision_props=sim_utils.CollisionPropertiesCfg(
+                collision_enabled=True,
+                contact_offset=0.01,
+                rest_offset=0.0,
+            ),
         ),
         init_state=RigidObjectCfg.InitialStateCfg(pos=list(EGG_INIT_POS), rot=list(EGG_INIT_ROT)),
     )
@@ -142,7 +159,42 @@ class ActionsCfg:
 @configclass
 class EventCfg:
     """Configuration for startup events."""
-    pass
+
+    scale_cover = EventTerm(
+        func=pot_events.apply_scale_from_spawn_cfg,
+        mode="prestartup",
+        params={"asset_cfg": SceneEntityCfg("cover")},
+    )
+
+    refine_pot_collision = EventTerm(
+        func=pot_events.set_asset_mesh_collision_to_convex_decomposition,
+        mode="prestartup",
+        params={
+            "asset_cfg": SceneEntityCfg("pot"),
+            "hull_vertex_limit": 128,
+            "max_convex_hulls": 128,
+            "min_thickness": 0.002,
+            "voxel_resolution": 2_000_000,
+            "error_percentage": 1.0,
+            "shrink_wrap": True,
+        },
+    )
+
+    refine_egg_collision = EventTerm(
+        func=pot_events.set_asset_mesh_collision_to_convex_decomposition,
+        mode="prestartup",
+        params={
+            "asset_cfg": SceneEntityCfg("egg"),
+            "hull_vertex_limit": 64,
+            "max_convex_hulls": 16,
+            "min_thickness": 0.001,
+            "voxel_resolution": 1_000_000,
+            "error_percentage": 1.0,
+            "shrink_wrap": True,
+            "contact_offset": 0.01,
+            "rest_offset": 0.0,
+        },
+    )
 
 
 @configclass
@@ -192,6 +244,7 @@ class ObservationsCfg:
             params={
                 "pot_cfg": SceneEntityCfg("pot"),
                 "cover_cfg": SceneEntityCfg("cover"),
+                "robot_cfg": SceneEntityCfg("robot"),
                 "xy_threshold": POT_COVER_REMOVE_XY_THRESHOLD,
                 "height_threshold": POT_COVER_REMOVE_HEIGHT_THRESHOLD,
             },
@@ -264,7 +317,8 @@ class TerminationsCfg:
             "lid_xy_threshold": POT_COVER_REMOVE_XY_THRESHOLD,
             "lid_height_threshold": POT_COVER_REMOVE_HEIGHT_THRESHOLD,
             "egg_xy_threshold": EGG_POT_XY_THRESHOLD,
-            "egg_z_threshold": EGG_POT_Z_THRESHOLD,
+            "egg_z_min_threshold": EGG_POT_Z_MIN_THRESHOLD,
+            "egg_z_max_threshold": EGG_POT_Z_MAX_THRESHOLD,
         },
     )
 
@@ -301,6 +355,7 @@ class PotEnvCfg(ManagerBasedRLEnvCfg):
         self.rerender_on_reset = True
         self.sim.render.antialiasing_mode = "OFF"
 
+        self.sim.physx.enable_ccd = True
         self.sim.physx.bounce_threshold_velocity = 0.2
         self.sim.physx.gpu_found_lost_aggregate_pairs_capacity = 1024 * 1024 * 4
         self.sim.physx.gpu_total_aggregate_pairs_capacity = 16 * 1024

@@ -3,6 +3,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+import math
 import os
 from dataclasses import MISSING
 
@@ -45,9 +46,16 @@ SCISSORS010_INIT_POS = (DESK_LAPTOP_POS[0], DESK_LAPTOP_POS[1], DESK_LAPTOP_POS[
 SCISSORS010_INIT_ROT = (1.0, 0.0, 0.0, 0.0)
 
 PEN_GRASP_DIFF_THRESHOLD = 0.08
-PEN_HOLDER_XY_THRESHOLD = 0.05
-PEN_HOLDER_MIN_HEIGHT_OFFSET = 0.08
-PEN_HOLDER_MAX_HEIGHT_OFFSET = 0.15
+PEN_HOLDER_CENTER_XY_THRESHOLD = 0.035
+PEN_HOLDER_INSERTION_PROBE_DEPTH = 0.11
+PEN_HOLDER_INSERTION_MIN_HEIGHT = 0.0
+PEN_HOLDER_INSERTION_MAX_HEIGHT = 0.05
+PEN_HOLDER_MAX_AXIS_DEVIATION_RAD = math.radians(35.0)
+
+# Backward-compatible aliases for configs that still import the previous success-threshold names.
+PEN_HOLDER_XY_THRESHOLD = PEN_HOLDER_CENTER_XY_THRESHOLD
+PEN_HOLDER_MIN_HEIGHT_OFFSET = PEN_HOLDER_INSERTION_MIN_HEIGHT
+PEN_HOLDER_MAX_HEIGHT_OFFSET = PEN_HOLDER_INSERTION_MAX_HEIGHT
 
 pen_mass_properties = MassPropertiesCfg(
     mass=0.01,  # Mass in kg
@@ -239,9 +247,11 @@ class ObservationsCfg:
         #         "pen_cfg": SceneEntityCfg("pen"),
         #         "holder_cfg": SceneEntityCfg("pen_holder001"),
         #         "robot_cfg": SceneEntityCfg("robot"),
-        #         "xy_threshold": PEN_HOLDER_XY_THRESHOLD,
-        #         "min_height_offset": PEN_HOLDER_MIN_HEIGHT_OFFSET,
-        #         "max_height_offset": PEN_HOLDER_MAX_HEIGHT_OFFSET,
+        #         "center_xy_threshold": PEN_HOLDER_CENTER_XY_THRESHOLD,
+        #         "insertion_probe_depth": PEN_HOLDER_INSERTION_PROBE_DEPTH,
+        #         "insertion_min_height": PEN_HOLDER_INSERTION_MIN_HEIGHT,
+        #         "insertion_max_height": PEN_HOLDER_INSERTION_MAX_HEIGHT,
+        #         "max_axis_deviation_rad": PEN_HOLDER_MAX_AXIS_DEVIATION_RAD,
         #     },
         # )
 
@@ -280,9 +290,11 @@ class TerminationsCfg:
             "pen_cfg": SceneEntityCfg("pen"),
             "holder_cfg": SceneEntityCfg("pen_holder001"),
             "robot_cfg": SceneEntityCfg("robot"),
-            "xy_threshold": PEN_HOLDER_XY_THRESHOLD,
-            "min_height_offset": PEN_HOLDER_MIN_HEIGHT_OFFSET,
-            "max_height_offset": PEN_HOLDER_MAX_HEIGHT_OFFSET,
+            "center_xy_threshold": PEN_HOLDER_CENTER_XY_THRESHOLD,
+            "insertion_probe_depth": PEN_HOLDER_INSERTION_PROBE_DEPTH,
+            "insertion_min_height": PEN_HOLDER_INSERTION_MIN_HEIGHT,
+            "insertion_max_height": PEN_HOLDER_INSERTION_MAX_HEIGHT,
+            "max_axis_deviation_rad": PEN_HOLDER_MAX_AXIS_DEVIATION_RAD,
         },
     )
 

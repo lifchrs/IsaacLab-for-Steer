@@ -156,5 +156,4 @@ class DroidDrinkIKRelMimicEnv(ManagerBasedRLMimicEnv):
             "grasp_drink_lid": subtask_terms["grasp_drink_lid"][env_ids],
             "drink_lid_removed": subtask_terms["drink_lid_removed"][env_ids],
             "grasp_drink": subtask_terms["grasp_drink"][env_ids],
-            "drink_poured_into_cup": subtask_terms["drink_poured_into_cup"][env_ids],
         }

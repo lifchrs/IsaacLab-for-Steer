@@ -457,5 +457,6 @@ class MultiWaypoint:
             observations=[obs],
             actions=[play_action],
             success=success,
+            terminated=bool(env_id in env.should_terminate and env.should_terminate[env_id]),
         )
         return result

@@ -156,5 +156,4 @@ class DroidPotIKRelMimicEnv(ManagerBasedRLMimicEnv):
             "grasp_cover": subtask_terms["grasp_cover"][env_ids],
             "lid_removed": subtask_terms["lid_removed"][env_ids],
             "grasp_egg": subtask_terms["grasp_egg"][env_ids],
-            "egg_in_pot": subtask_terms["egg_in_pot"][env_ids],
         }

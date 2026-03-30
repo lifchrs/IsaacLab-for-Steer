@@ -43,8 +43,9 @@ DRINK_LID_INIT_ROT = DRINK_INIT_ROT
 CUP_INIT_POS = (BIG_TABLE_CENTER_POS[0] + 0.10, BIG_TABLE_CENTER_POS[1], BIG_TABLE_CENTER_POS[2])
 CUP_INIT_ROT = (1.0, 0.0, 0.0, 0.0)
 
-DRINK_GRASP_DIFF_THRESHOLD = 0.08
-DRINK_LID_GRASP_DIFF_THRESHOLD = 0.06
+DRINK_GRASP_DIFF_THRESHOLD = 0.06
+DRINK_GRASP_DIFF_Z = 0.10
+DRINK_LID_GRASP_DIFF_THRESHOLD = 0.03
 DRINK_LID_REMOVE_XY_THRESHOLD = 0.05
 DRINK_LID_REMOVE_HEIGHT_MARGIN = 0.04
 DRINK_POUR_XY_THRESHOLD = 0.15
@@ -217,23 +218,24 @@ class ObservationsCfg:
                 "ee_frame_cfg": SceneEntityCfg("ee_frame"),
                 "object_cfg": SceneEntityCfg("drink"),
                 "diff_threshold": DRINK_GRASP_DIFF_THRESHOLD,
+                "diff_z": DRINK_GRASP_DIFF_Z,
             },
         )
 
-        drink_poured_into_cup = ObsTerm(
-            func=mdp.task_done_drink,
-            params={
-                "drink_cfg": SceneEntityCfg("drink"),
-                "lid_cfg": SceneEntityCfg("drink_lid"),
-                "cup_cfg": SceneEntityCfg("cup"),
-                "body_top_z_offset": DRINK_BODY_TOP_Z_OFFSET,
-                "lid_remove_xy_threshold": DRINK_LID_REMOVE_XY_THRESHOLD,
-                "lid_remove_height_margin": DRINK_LID_REMOVE_HEIGHT_MARGIN,
-                "pour_xy_threshold": DRINK_POUR_XY_THRESHOLD,
-                "pour_height_threshold": DRINK_POUR_HEIGHT_THRESHOLD,
-                "pour_tilt_threshold": DRINK_POUR_TILT_THRESHOLD,
-            },
-        )
+        # drink_poured_into_cup = ObsTerm(
+        #     func=mdp.task_done_drink,
+        #     params={
+        #         "drink_cfg": SceneEntityCfg("drink"),
+        #         "lid_cfg": SceneEntityCfg("drink_lid"),
+        #         "cup_cfg": SceneEntityCfg("cup"),
+        #         "body_top_z_offset": DRINK_BODY_TOP_Z_OFFSET,
+        #         "lid_remove_xy_threshold": DRINK_LID_REMOVE_XY_THRESHOLD,
+        #         "lid_remove_height_margin": DRINK_LID_REMOVE_HEIGHT_MARGIN,
+        #         "pour_xy_threshold": DRINK_POUR_XY_THRESHOLD,
+        #         "pour_height_threshold": DRINK_POUR_HEIGHT_THRESHOLD,
+        #         "pour_tilt_threshold": DRINK_POUR_TILT_THRESHOLD,
+        #     },
+        # )
 
         def __post_init__(self):
             self.enable_corruption = False
