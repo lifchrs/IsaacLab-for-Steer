@@ -154,7 +154,7 @@ def task_done_can(
     robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
     door_joint_name: str = "RevoluteJoint_oven_door",
     slot_offset: tuple[float, float, float] = (0.06, 0.09, -0.09),
-    can_in_oven_threshold: float = 0.12,
+    can_in_oven_threshold: float = 0.15,
     door_open_threshold: float = -0.6,
     door_closed_threshold: float = -0.01,
     atol: float = 0.01,

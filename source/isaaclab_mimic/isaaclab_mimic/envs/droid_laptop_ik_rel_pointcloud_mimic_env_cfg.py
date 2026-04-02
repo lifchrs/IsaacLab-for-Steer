@@ -24,7 +24,7 @@ class DroidLaptopIKRelPointCloudMimicEnvCfg(
         super().__post_init__()
 
         # Override the existing values
-        self.datagen_config.name = "isaac_lab_droid_laptop_ik_rel_pointcloud_D0"
+        self.datagen_config.name = "isaac_lab_droid_laptop_ik_rel_pointcloud_v0"
         self.datagen_config.generation_guarantee = True
         self.datagen_config.generation_keep_failed = False
         self.datagen_config.generation_num_trials = 10

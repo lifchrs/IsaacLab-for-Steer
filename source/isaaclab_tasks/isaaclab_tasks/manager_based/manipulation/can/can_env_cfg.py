@@ -283,7 +283,7 @@ class TerminationsCfg:
             "can_cfg": SceneEntityCfg("can"),
             "oven_cfg": SceneEntityCfg("oven"),
             "slot_offset": OVEN_SLOT_OFFSET,
-            "can_in_oven_threshold": 0.12,
+            "can_in_oven_threshold": 0.15,
             # "door_closed_threshold": -0.01,
         },
     )

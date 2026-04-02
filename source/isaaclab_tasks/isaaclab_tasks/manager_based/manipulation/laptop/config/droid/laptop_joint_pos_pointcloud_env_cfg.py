@@ -142,11 +142,30 @@ class ObservationsCfg:
         eef_quat = ObsTerm(func=mdp.ee_frame_quat)
         gripper_pos = ObsTerm(func=mdp.gripper_pos)
 
+        table_cam = ObsTerm(
+            func=mdp.image,
+            params={
+                "sensor_cfg": SceneEntityCfg("table_cam"),
+                "data_type": "rgb",
+                "normalize": False,
+            },
+            # noise=GaussianNoiseCfg(mean=0.0, std=15.0, operation="add"),
+        )
+        wrist_cam = ObsTerm(
+            func=mdp.image,
+            params={
+                "sensor_cfg": SceneEntityCfg("wrist_cam"),
+                "data_type": "rgb",
+                "normalize": False,
+            },
+            # noise=GaussianNoiseCfg(mean=0.0, std=15.0, operation="add"),
+        )
+
         point_positions = ObsTerm(
             func=mdp.merged_rgbd_point_cloud_positions,
             params={
                 "sensor_names": ("table_cam", "table_cam_mirror"),
-                "num_points": 204800,
+                "num_points": 2048,
                 "normalize_color": False,
             },
         )
@@ -154,7 +173,7 @@ class ObservationsCfg:
             func=mdp.merged_rgbd_point_cloud_color,
             params={
                 "sensor_names": ("table_cam", "table_cam_mirror"),
-                "num_points": 204800,
+                "num_points": 2048,
                 "normalize_color": False,
             },
         )
@@ -297,6 +316,25 @@ class DroidLaptopJointPosPointCloudEnvCfg(LaptopEnvCfg):
             ),
         )
 
+        # Set wrist camera
+        self.scene.wrist_cam = CameraCfg(
+            prim_path="{ENV_REGEX_NS}/Robot/Gripper/Robotiq_2F_85/base_link/wrist_cam",
+            height=720,
+            width=1280,
+            data_types=["rgb"],
+            spawn=sim_utils.PinholeCameraCfg(
+                focal_length=2.8,
+                focus_distance=28.0,
+                horizontal_aperture=5.376,
+                vertical_aperture=3.024,
+            ),
+            offset=CameraCfg.OffsetCfg(
+                pos=(0.011, -0.031, -0.074),
+                rot=(-0.420, 0.570, 0.576, -0.409),
+                convention="opengl",
+            ),
+        )
+
         self.scene.table_cam_mirror = CameraCfg(
             prim_path="{ENV_REGEX_NS}/table_cam_mirror",
             height=720,
@@ -320,13 +358,15 @@ class DroidLaptopJointPosPointCloudEnvCfg(LaptopEnvCfg):
         self.sim.render.antialiasing_mode = "OFF"  # disable dlss
 
         # change camera resolutions to save memory
-        self.scene.table_cam.height = 720 // 4
-        self.scene.table_cam.width = 1280 // 4
+        self.scene.table_cam.height = 720
+        self.scene.table_cam.width = 1280
+        self.scene.wrist_cam.height = 720
+        self.scene.wrist_cam.width = 1280
         self.scene.table_cam_mirror.height = 720 // 4
         self.scene.table_cam_mirror.width = 1280 // 4
 
-        # Keep the active camera sensors discoverable for downstream tooling.
-        self.image_obs_list = ["table_cam", "table_cam_mirror"]
+        # List of image observations in policy observations
+        self.image_obs_list = ["table_cam", "wrist_cam"]
 
 
 DroidLaptopJointPosVisuomotorEnvCfg = DroidLaptopJointPosPointCloudEnvCfg
