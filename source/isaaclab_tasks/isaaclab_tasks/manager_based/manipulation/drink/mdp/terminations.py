@@ -94,7 +94,7 @@ def drink_poured_into_cup(
     cup_cfg: SceneEntityCfg = SceneEntityCfg("cup"),
     body_top_z_offset: float = 0.21825,
     xy_threshold: float = 0.15,
-    height_threshold: float = 0.05,
+    height_threshold: float = 0.10,
     tilt_threshold: float = torch.pi / 4,
 ) -> torch.Tensor:
     """Check if the drink is positioned over the cup and tilted enough to pour."""
