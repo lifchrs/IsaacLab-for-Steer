@@ -24,10 +24,12 @@ parser.add_argument("--target_offset", type=float, nargs=3, default=[0.10, -0.08
                     help="Target offset from current EE (x y z meters).")
 parser.add_argument("--seed", type=int, default=42)
 parser.add_argument("--output_dir", type=str, default="./videos/tianji_wuji_test")
-parser.add_argument("--fps", type=int, default=15)
+parser.add_argument("--fps", type=int, default=60)
 parser.add_argument("--no_video", action="store_true")
 parser.add_argument("--modified_values", action="store_true",
                     help="Override USD actuator gains with real Tianji SDK values (from impedance control demo).")
+parser.add_argument("--absolute", action="store_true",
+                    help="Use absolute IK mode instead of relative IK + P-controller.")
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
 
@@ -119,6 +121,28 @@ def main():
         for act_name in ["left_forearm", "right_forearm"]:    # joints 5-7
             env_cfg.scene.robot.actuators[act_name].stiffness = 57.3   # 1.0 Nm/deg
             env_cfg.scene.robot.actuators[act_name].damping = 11.5     # 0.2 Nm/(deg/s)
+
+    if args_cli.absolute:
+        # Switch to absolute IK: action = [x, y, z, qw, qx, qy, qz] in base frame
+        from isaaclab.controllers.differential_ik_cfg import DifferentialIKControllerCfg
+        from isaaclab.envs.mdp.actions.actions_cfg import DifferentialInverseKinematicsActionCfg
+        WUJI_EE_OFFSET = DifferentialInverseKinematicsActionCfg.OffsetCfg(
+            pos=[0.0, 0.0, 0.107], rot=[0.0, 0.0, 0.0, 1.0],
+        )
+        for arm, body in [("left_arm_action", "left_link7"), ("right_arm_action", "right_link7")]:
+            joints = ["left_joint.*"] if "left" in arm else ["right_joint.*"]
+            setattr(env_cfg.actions, arm, DifferentialInverseKinematicsActionCfg(
+                asset_name="robot",
+                joint_names=joints,
+                body_name=body,
+                controller=DifferentialIKControllerCfg(
+                    command_type="pose", use_relative_mode=False, ik_method="dls",
+                    ik_params={"lambda_val": 0.1},
+                ),
+                scale=1.0,
+                body_offset=WUJI_EE_OFFSET,
+            ))
+
     env = ManagerBasedEnv(cfg=env_cfg)
     env.reset()
 
@@ -170,8 +194,16 @@ def main():
     marker_idx = torch.zeros(n, dtype=torch.long, device=device)
     markers.visualize(translations=target_pos_w, marker_indices=marker_idx)
 
+    # Prepare absolute IK commands if needed
+    if args_cli.absolute:
+        left_pos_b, left_quat_b = _ee_pose_in_base(env, "left_link7", ik_offset_pos, ik_offset_rot)
+        right_pos_b, right_quat_b = _ee_pose_in_base(env, "right_link7", ik_offset_pos, ik_offset_rot)
+        left_arm_target = torch.cat([target_pos_b, left_quat_b], dim=-1)   # target pos, keep orientation
+        right_arm_hold = torch.cat([right_pos_b, right_quat_b], dim=-1)    # hold current
+
+    mode = "absolute IK" if args_cli.absolute else "relative IK + P-controller"
     print(f"\n{'=' * 60}")
-    print(f"  Tianji + Wuji Interface Test (IK relative, no USD overrides)")
+    print(f"  Tianji + Wuji Interface Test ({mode})")
     print(f"  EE start (world): {ee_pos_w_init[0].cpu().numpy()}")
     print(f"  Target   (world): {target_pos_w[0].cpu().numpy()}")
     print(f"  Offset:           {args_cli.target_offset}")
@@ -186,16 +218,21 @@ def main():
     converge_step = -1
 
     for step in range(args_cli.max_steps):
-        # IK relative P-controller
-        curr_pos_b, curr_quat_b = _ee_pose_in_base(env, "left_link7", ik_offset_pos, ik_offset_rot)
-        pos_err, rot_err = math_utils.compute_pose_error(
-            curr_pos_b, curr_quat_b, target_pos_b, target_quat_b, rot_error_type="axis_angle",
-        )
-        left_arm_cmd = torch.cat((gain * pos_err, 0.3 * rot_err), dim=-1)
-        left_arm_cmd[:, :3] = torch.clamp(left_arm_cmd[:, :3], -max_delta, max_delta)
-        left_arm_cmd[:, 3:] = torch.clamp(left_arm_cmd[:, 3:], -0.12, 0.12)
+        if args_cli.absolute:
+            # Absolute IK: just send target pose every step
+            left_arm_cmd = left_arm_target.clone()
+            right_arm_cmd = right_arm_hold.clone()
+        else:
+            # Relative IK + P-controller
+            curr_pos_b, curr_quat_b = _ee_pose_in_base(env, "left_link7", ik_offset_pos, ik_offset_rot)
+            pos_err, rot_err = math_utils.compute_pose_error(
+                curr_pos_b, curr_quat_b, target_pos_b, target_quat_b, rot_error_type="axis_angle",
+            )
+            left_arm_cmd = torch.cat((gain * pos_err, 0.3 * rot_err), dim=-1)
+            left_arm_cmd[:, :3] = torch.clamp(left_arm_cmd[:, :3], -max_delta, max_delta)
+            left_arm_cmd[:, 3:] = torch.clamp(left_arm_cmd[:, 3:], -0.12, 0.12)
+            right_arm_cmd = torch.zeros((n, 6), device=device)
 
-        right_arm_cmd = torch.zeros((n, 6), device=device)
         alpha = min(1.0, step / 30.0)
         left_hand_cmd = alpha * finger_target
         right_hand_cmd = torch.zeros((n, 20), device=device)

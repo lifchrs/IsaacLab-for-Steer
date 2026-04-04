@@ -118,9 +118,9 @@ class TianjiWujiEnvCfg(ManagerBasedEnvCfg):
     commands = None
 
     def __post_init__(self):
-        self.decimation = 4
-        self.sim.dt = 1.0 / 60.0
-        self.sim.render_interval = self.decimation
+        self.decimation = 1
+        self.sim.dt = 1.0 / 240.0
+        self.sim.render_interval = 1
 
         # No actuator overrides — all values from USD.
 
