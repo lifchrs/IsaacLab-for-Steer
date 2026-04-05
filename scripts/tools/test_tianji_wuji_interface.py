@@ -1,12 +1,21 @@
 #!/usr/bin/env python3
-"""Test the Tianji+Wuji unified positional control interface (OSC).
+"""Test the Tianji+Wuji unified positional control interface.
 
-Just send the target wrist pose — the Operational Space Controller handles
-dynamics (mass, inertia, gravity) automatically via PhysX.
+Architecture (matches real robot):
+  P-controller (policy rate) → 6D delta → DiffIK action term (240 Hz) → PhysX PD
+
+The DiffIK action term re-solves IK at each physics sub-step (240 Hz), acting
+as the "internal servo" — equivalent to the real robot's 1 kHz control loop.
+The P-controller is the "policy" that generates EE commands.
+
+Modes:
+  (default)      Relative IK + P-controller (DiffIK at 240 Hz)
+  --absolute     Absolute IK (sends target pose directly)
+  --analytical   Tianji SDK analytical IK + PhysX PD (closest to real robot)
 
 Usage:
     PYTHONUNBUFFERED=1 /path/to/python scripts/tools/test_tianji_wuji_interface.py \
-        --headless --enable_cameras --target_offset 0.1 -0.08 0.08
+        --headless --enable_cameras --analytical --target_offset 0.1 -0.08 0.08
 """
 
 import argparse
@@ -26,10 +35,14 @@ parser.add_argument("--seed", type=int, default=42)
 parser.add_argument("--output_dir", type=str, default="./videos/tianji_wuji_test")
 parser.add_argument("--fps", type=int, default=60)
 parser.add_argument("--no_video", action="store_true")
-parser.add_argument("--modified_values", action="store_true",
-                    help="Override USD actuator gains with real Tianji SDK values (from impedance control demo).")
 parser.add_argument("--absolute", action="store_true",
                     help="Use absolute IK mode instead of relative IK + P-controller.")
+parser.add_argument("--analytical", action="store_true",
+                    help="Use Tianji SDK analytical IK + JointPosition PD (closest to real robot).")
+parser.add_argument("--control_hz", type=int, default=None,
+                    help="Policy update rate in Hz (default: 240). Sim always runs at 240 Hz.")
+parser.add_argument("--usd_gains", action="store_true",
+                    help="Use original USD actuator gains instead of real Tianji SDK values.")
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
 
@@ -105,16 +118,72 @@ def _ee_pose_in_base(env, body_name, offset_pos, offset_rot):
     return pos_b, quat_b
 
 
+def _trapezoidal_profile(t, distance, v_max, a_max):
+    """Compute position along a 1D trapezoidal velocity profile.
+
+    Returns a fraction in [0, 1] of the total distance traveled at time t.
+    The profile accelerates at a_max, cruises at v_max, and decelerates at a_max.
+    """
+    if abs(distance) < 1e-8:
+        return 1.0
+
+    d = abs(distance)
+    # Time to accelerate to v_max
+    t_accel = v_max / a_max
+    # Distance covered during acceleration
+    d_accel = 0.5 * a_max * t_accel ** 2
+
+    if 2 * d_accel >= d:
+        # Triangle profile (can't reach v_max)
+        t_accel = (d / a_max) ** 0.5
+        t_total = 2 * t_accel
+        t = min(t, t_total)
+        if t <= t_accel:
+            s = 0.5 * a_max * t ** 2
+        else:
+            dt = t - t_accel
+            v_peak = a_max * t_accel
+            s = d_accel + v_peak * dt - 0.5 * a_max * dt ** 2
+            # actually d_accel here is 0.5 * d
+        return min(s / d, 1.0)
+    else:
+        # Full trapezoidal
+        d_cruise = d - 2 * d_accel
+        t_cruise = d_cruise / v_max
+        t_total = 2 * t_accel + t_cruise
+        t = min(t, t_total)
+        if t <= t_accel:
+            s = 0.5 * a_max * t ** 2
+        elif t <= t_accel + t_cruise:
+            s = d_accel + v_max * (t - t_accel)
+        else:
+            dt = t - t_accel - t_cruise
+            s = d_accel + d_cruise + v_max * dt - 0.5 * a_max * dt ** 2
+        return min(s / d, 1.0)
+
+
+def _compute_trapz_fraction(t, joint_distances, v_max, a_max):
+    """Compute trapezoidal profile fraction for multi-joint motion.
+
+    Uses the joint with the largest distance to determine the timing,
+    so all joints start and stop together (coordinated motion).
+    """
+    max_dist = float(joint_distances.abs().max())
+    return _trapezoidal_profile(t, max_dist, v_max, a_max)
+
+
 def main():
     torch.manual_seed(args_cli.seed)
     np.random.seed(args_cli.seed)
 
     env_cfg = TianjiWujiEnvCfg()
     env_cfg.scene.num_envs = args_cli.num_envs
-    if args_cli.modified_values:
-        # Real Tianji SDK impedance values (from showcase_torque_joint_impedance demo)
-        # K=[2,2,2,1.6,1,1,1] Nm/deg, D=[0.3,0.3,0.3,0.2,0.2,0.2,0.2] Nm/(deg/s)
-        # Converted to Nm/rad: multiply by 180/pi ≈ 57.3
+
+    # Use real Tianji SDK actuator gains by default (USD values are ~100x too low).
+    # Real values from Tianji SDK showcase_torque_joint_impedance demo:
+    #   K=[2,2,2,1.6,1,1,1] Nm/deg, D=[0.3,0.3,0.3,0.2,0.2,0.2,0.2] Nm/(deg/s)
+    #   Converted to Nm/rad: multiply by 180/pi ≈ 57.3
+    if not args_cli.usd_gains:
         for act_name in ["left_shoulder", "right_shoulder"]:  # joints 1-4
             env_cfg.scene.robot.actuators[act_name].stiffness = 114.6  # 2.0 Nm/deg
             env_cfg.scene.robot.actuators[act_name].damping = 17.2     # 0.3 Nm/(deg/s)
@@ -122,7 +191,29 @@ def main():
             env_cfg.scene.robot.actuators[act_name].stiffness = 57.3   # 1.0 Nm/deg
             env_cfg.scene.robot.actuators[act_name].damping = 11.5     # 0.2 Nm/(deg/s)
 
-    if args_cli.absolute:
+    # Policy interval: how many physics steps between policy updates
+    if args_cli.control_hz is not None:
+        policy_interval = max(1, 240 // args_cli.control_hz)
+    elif args_cli.analytical:
+        policy_interval = 24  # default 10 Hz for analytical
+    else:
+        policy_interval = 1   # default 240 Hz for DiffIK modes
+
+    # Always run sim at 240 Hz (decimation=1) for smooth rendering
+    env_cfg.decimation = 1
+
+    if args_cli.analytical:
+        # Analytical IK: arms use JointPositionAction, IK solved externally via SDK
+        from isaaclab.envs.mdp.actions.actions_cfg import JointPositionActionCfg as _JointPosCfg
+        env_cfg.actions.left_arm_action = _JointPosCfg(
+            asset_name="robot", joint_names=["left_joint.*"],
+            scale=1.0, use_default_offset=False,
+        )
+        env_cfg.actions.right_arm_action = _JointPosCfg(
+            asset_name="robot", joint_names=["right_joint.*"],
+            scale=1.0, use_default_offset=False,
+        )
+    elif args_cli.absolute:
         # Switch to absolute IK: action = [x, y, z, qw, qx, qy, qz] in base frame
         from isaaclab.controllers.differential_ik_cfg import DifferentialIKControllerCfg
         from isaaclab.envs.mdp.actions.actions_cfg import DifferentialInverseKinematicsActionCfg
@@ -136,8 +227,8 @@ def main():
                 joint_names=joints,
                 body_name=body,
                 controller=DifferentialIKControllerCfg(
-                    command_type="pose", use_relative_mode=False, ik_method="dls",
-                    ik_params={"lambda_val": 0.1},
+                    command_type="pose", use_relative_mode=False, ik_method="pinv",
+                    ik_params={"k_val": 0.3},
                 ),
                 scale=1.0,
                 body_offset=WUJI_EE_OFFSET,
@@ -194,16 +285,78 @@ def main():
     marker_idx = torch.zeros(n, dtype=torch.long, device=device)
     markers.visualize(translations=target_pos_w, marker_indices=marker_idx)
 
-    # Prepare absolute IK commands if needed
-    if args_cli.absolute:
+    # Prepare mode-specific state
+    if args_cli.analytical:
+        from isaaclab_assets.robots.tianji_analytical_ik import TianjiAnalyticalIK
+        from scipy.spatial.transform import Rotation as SciRotation
+
+        sdk_ik = TianjiAnalyticalIK()
+        sdk_ik.set_tool_offset("left", 90.5)  # flange → EE = 90.5mm
+
+        # Get arm base frame for coordinate conversion
+        arm_base_ids, _ = robot.find_bodies("left_base_link")
+        left_joint_ids_list, _ = robot.find_joints(["left_joint.*"])
+        right_joint_ids_list, _ = robot.find_joints(["right_joint.*"])
+
+        # Get current EE pose in arm base frame (for target orientation)
+        link7_pos_w = robot.data.body_pos_w[:, robot.find_bodies("left_link7")[0][0]]
+        link7_quat_w = robot.data.body_quat_w[:, robot.find_bodies("left_link7")[0][0]]
+        ee_pos_w, ee_quat_w = math_utils.combine_frame_transforms(
+            link7_pos_w, link7_quat_w, ik_offset_pos, ik_offset_rot
+        )
+        # Convert target position and current EE orientation to arm base frame
+        target_pos_ab, _ = math_utils.subtract_frame_transforms(
+            robot.data.body_pos_w[:, arm_base_ids[0]],
+            robot.data.body_quat_w[:, arm_base_ids[0]],
+            target_pos_w,
+            ee_quat_w,  # keep current orientation
+        )
+        _, ee_quat_ab = math_utils.subtract_frame_transforms(
+            robot.data.body_pos_w[:, arm_base_ids[0]],
+            robot.data.body_quat_w[:, arm_base_ids[0]],
+            ee_pos_w, ee_quat_w,
+        )
+
+        # Solve analytical IK once — exact joint solution
+        target_pos_ab_np = target_pos_ab[0].cpu().numpy()
+        target_quat_ab_np = ee_quat_ab[0].cpu().numpy()  # keep current orientation, wxyz
+        ref_joints = robot.data.joint_pos[0, left_joint_ids_list].cpu().numpy()
+        # Ensure ref joint4 != 0 (SDK constraint)
+        if abs(ref_joints[3]) < 0.01:
+            ref_joints[3] = 0.1
+
+        ik_joints = sdk_ik.solve_ik("left", target_pos_ab_np, target_quat_ab_np, ref_joints)
+        if ik_joints is None:
+            print("  [ERROR] Analytical IK failed — target unreachable")
+            env.close()
+            sys.exit(1)
+        print(f"  Analytical IK solution (deg): {np.degrees(ik_joints).round(2)}")
+
+        # Joint targets and trajectory planner state
+        left_arm_target_joints = torch.tensor(ik_joints, dtype=torch.float32, device=device).unsqueeze(0).repeat(n, 1)
+        left_arm_start_joints = robot.data.joint_pos[:, left_joint_ids_list].clone()
+        right_arm_fixed = robot.data.joint_pos[:, right_joint_ids_list].clone()
+
+        # Trapezoidal velocity profile parameters
+        max_joint_vel = 2.0    # rad/s (max velocity in joint space)
+        max_joint_accel = 8.0  # rad/s^2 (acceleration/deceleration)
+    elif args_cli.absolute:
         left_pos_b, left_quat_b = _ee_pose_in_base(env, "left_link7", ik_offset_pos, ik_offset_rot)
         right_pos_b, right_quat_b = _ee_pose_in_base(env, "right_link7", ik_offset_pos, ik_offset_rot)
-        left_arm_target = torch.cat([target_pos_b, left_quat_b], dim=-1)   # target pos, keep orientation
-        right_arm_hold = torch.cat([right_pos_b, right_quat_b], dim=-1)    # hold current
+        left_arm_target = torch.cat([target_pos_b, left_quat_b], dim=-1)
+        right_arm_hold = torch.cat([right_pos_b, right_quat_b], dim=-1)
 
-    mode = "absolute IK" if args_cli.absolute else "relative IK + P-controller"
+    policy_hz = 240 // policy_interval
+    if args_cli.analytical:
+        mode = "analytical IK + trapezoidal profile"
+    elif args_cli.absolute:
+        mode = "absolute IK"
+    else:
+        mode = "relative IK + P-controller"
+    gains_info = "USD gains" if args_cli.usd_gains else "SDK gains"
     print(f"\n{'=' * 60}")
     print(f"  Tianji + Wuji Interface Test ({mode})")
+    print(f"  Policy: {policy_hz} Hz  |  Physics: 240 Hz  |  {gains_info}")
     print(f"  EE start (world): {ee_pos_w_init[0].cpu().numpy()}")
     print(f"  Target   (world): {target_pos_w[0].cpu().numpy()}")
     print(f"  Offset:           {args_cli.target_offset}")
@@ -216,48 +369,67 @@ def main():
     max_delta = 0.08
     converged = False
     converge_step = -1
+    total_sim_steps = args_cli.max_steps * policy_interval
+    action = None
 
-    for step in range(args_cli.max_steps):
-        if args_cli.absolute:
-            # Absolute IK: just send target pose every step
-            left_arm_cmd = left_arm_target.clone()
-            right_arm_cmd = right_arm_hold.clone()
-        else:
-            # Relative IK + P-controller
-            curr_pos_b, curr_quat_b = _ee_pose_in_base(env, "left_link7", ik_offset_pos, ik_offset_rot)
-            pos_err, rot_err = math_utils.compute_pose_error(
-                curr_pos_b, curr_quat_b, target_pos_b, target_quat_b, rot_error_type="axis_angle",
-            )
-            left_arm_cmd = torch.cat((gain * pos_err, 0.3 * rot_err), dim=-1)
-            left_arm_cmd[:, :3] = torch.clamp(left_arm_cmd[:, :3], -max_delta, max_delta)
-            left_arm_cmd[:, 3:] = torch.clamp(left_arm_cmd[:, 3:], -0.12, 0.12)
-            right_arm_cmd = torch.zeros((n, 6), device=device)
+    for sim_step in range(total_sim_steps):
+        policy_step = sim_step // policy_interval
+        is_policy_step = (sim_step % policy_interval == 0)
 
-        alpha = min(1.0, step / 30.0)
-        left_hand_cmd = alpha * finger_target
-        right_hand_cmd = torch.zeros((n, 20), device=device)
+        # Recompute action at policy rate (or interpolate for analytical)
+        if args_cli.analytical:
+            # Trapezoidal velocity profile: smooth ramp from start to target joints
+            sim_time = sim_step / 240.0
+            joint_deltas = left_arm_target_joints - left_arm_start_joints
+            frac = _compute_trapz_fraction(sim_time, joint_deltas[0], max_joint_vel, max_joint_accel)
+            left_arm_cmd = left_arm_start_joints + frac * joint_deltas
+            right_arm_cmd = right_arm_fixed
 
-        action = torch.cat([left_arm_cmd, right_arm_cmd, left_hand_cmd, right_hand_cmd], dim=-1)
+            alpha_finger = min(1.0, policy_step / 30.0)
+            left_hand_cmd = alpha_finger * finger_target
+            right_hand_cmd = torch.zeros((n, 20), device=device)
+            action = torch.cat([left_arm_cmd, right_arm_cmd, left_hand_cmd, right_hand_cmd], dim=-1)
+        elif is_policy_step:
+            if args_cli.absolute:
+                left_arm_cmd = left_arm_target.clone()
+                right_arm_cmd = right_arm_hold.clone()
+            else:
+                # Relative IK + P-controller
+                curr_pos_b, curr_quat_b = _ee_pose_in_base(env, "left_link7", ik_offset_pos, ik_offset_rot)
+                pos_err, rot_err = math_utils.compute_pose_error(
+                    curr_pos_b, curr_quat_b, target_pos_b, target_quat_b, rot_error_type="axis_angle",
+                )
+                left_arm_cmd = torch.cat((gain * pos_err, 0.3 * rot_err), dim=-1)
+                left_arm_cmd[:, :3] = torch.clamp(left_arm_cmd[:, :3], -max_delta, max_delta)
+                left_arm_cmd[:, 3:] = torch.clamp(left_arm_cmd[:, 3:], -0.12, 0.12)
+                right_arm_cmd = torch.zeros((n, 6), device=device)
 
-        ee_w = _ee_pos_world(env, "left_link7", ik_offset_pos, ik_offset_rot)
-        dist = torch.linalg.vector_norm(ee_w - target_pos_w, dim=-1)[0].item()
+            alpha = min(1.0, policy_step / 30.0)
+            left_hand_cmd = alpha * finger_target
+            right_hand_cmd = torch.zeros((n, 20), device=device)
 
-        if dist < args_cli.threshold and not converged:
-            converged = True
-            converge_step = step
-
-        print(f"  step {step:3d}  |  ee_dist={dist:.4f}m")
+            action = torch.cat([left_arm_cmd, right_arm_cmd, left_hand_cmd, right_hand_cmd], dim=-1)
 
         markers.visualize(translations=target_pos_w, marker_indices=marker_idx)
         env.step(action)
 
-        if record_video:
+        # Log at policy rate
+        if is_policy_step:
+            ee_w = _ee_pos_world(env, "left_link7", ik_offset_pos, ik_offset_rot)
+            dist = torch.linalg.vector_norm(ee_w - target_pos_w, dim=-1)[0].item()
+            if dist < args_cli.threshold and not converged:
+                converged = True
+                converge_step = policy_step
+            print(f"  step {policy_step:3d}  |  ee_dist={dist:.4f}m")
+
+        # Capture video at ~60fps (every 4th sim step from 240Hz)
+        if record_video and sim_step % 4 == 0:
             try:
                 frames.append(_camera_rgb(env, "overhead_cam"))
             except KeyError:
                 pass
 
-        if converged and step - converge_step > 10:
+        if converged and policy_step - converge_step > 10:
             break
 
     if record_video and frames:
