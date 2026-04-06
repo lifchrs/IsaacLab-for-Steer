@@ -26,7 +26,7 @@ import numpy as np
 # ── Paths ──────────────────────────────────────────────────────────────────
 _SDK_DIR = Path(__file__).resolve().parents[4] / "assets" / "tianji" / "sdk"
 _LIB_PATH = str(_SDK_DIR / "libKine.so")
-_CFG_PATH = str(_SDK_DIR / "ccs_m3.MvKDCfg")
+_CFG_PATH = str(_SDK_DIR / "ccs_m6_40.MvKDCfg")
 
 # ── ctypes structures (mirrored from Tianji SDK fx_kine.py) ────────────────
 _FX_INT32L = c_long

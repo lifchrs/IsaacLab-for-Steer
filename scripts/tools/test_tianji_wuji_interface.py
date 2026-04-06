@@ -291,7 +291,7 @@ def main():
         from scipy.spatial.transform import Rotation as SciRotation
 
         sdk_ik = TianjiAnalyticalIK()
-        sdk_ik.set_tool_offset("left", 90.5)  # flange → EE = 90.5mm
+        sdk_ik.set_tool_offset("left", 12.0)  # flange → EE (M6: 870.5 + 12 = 882.5mm)
 
         # Get arm base frame for coordinate conversion
         arm_base_ids, _ = robot.find_bodies("left_base_link")
